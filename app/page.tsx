@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { collection, onSnapshot, doc } from 'firebase/firestore';
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User } from 'firebase/auth';
-import { RefreshCw, Film, LogOut, Github } from 'lucide-react';
+import { RefreshCw, Film, LogOut, Github, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface MovieList {
   id: string;
   title: string;
+  source?: string;
+  sourceUrl?: string;
   movies: string[];
   updatedAt: number;
 }
@@ -108,6 +110,11 @@ export default function Home() {
   }
 
   const listOrder = ['top_ten', 'in_theaters', 'new_in_theaters'];
+  const defaultSourceInfo: Record<string, { label: string; url: string }> = {
+    top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
+    in_theaters: { label: 'IMDb Showtimes', url: 'https://www.imdb.com/showtimes/' },
+    new_in_theaters: { label: 'Rotten Tomatoes', url: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' },
+  };
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-20">
@@ -163,6 +170,9 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {listOrder.map(listId => {
             const listData = lists[listId];
+            const sourceLabel = listData?.source || defaultSourceInfo[listId]?.label || 'Web Scraper';
+            const sourceUrl = listData?.sourceUrl || defaultSourceInfo[listId]?.url;
+
             return (
               <motion.div 
                 key={listId}
@@ -171,9 +181,27 @@ export default function Home() {
                 className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm flex flex-col"
               >
                 <div className="bg-neutral-100 p-4 border-b border-neutral-200">
-                  <h3 className="font-semibold text-neutral-900">{listData?.title || (listId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</h3>
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-semibold text-neutral-900 leading-snug">{listData?.title || (listId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</h3>
+                    {sourceUrl ? (
+                      <a
+                        href={sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-neutral-200/90 hover:bg-neutral-300 text-neutral-800 border border-neutral-300/60 inline-flex items-center gap-1 transition-colors"
+                        title={`Visit source: ${sourceUrl}`}
+                      >
+                        <span>{sourceLabel}</span>
+                        <ExternalLink className="w-3 h-3 text-neutral-500" />
+                      </a>
+                    ) : (
+                      <span className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-neutral-200/90 text-neutral-700 border border-neutral-300/60">
+                        {sourceLabel}
+                      </span>
+                    )}
+                  </div>
                   {listData?.updatedAt && (
-                    <p className="text-xs text-neutral-500 mt-1">
+                    <p className="text-xs text-neutral-500">
                       Last updated: {new Date(listData.updatedAt).toLocaleString()}
                     </p>
                   )}
