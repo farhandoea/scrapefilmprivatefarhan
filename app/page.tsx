@@ -16,6 +16,35 @@ interface MovieList {
   updatedAt: number;
 }
 
+const listOrder = ['top_ten', 'in_theaters', 'new_in_theaters'];
+const defaultSourceInfo: Record<string, { label: string; url: string }> = {
+  top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
+  in_theaters: { label: 'IMDb Showtimes', url: 'https://www.imdb.com/showtimes/' },
+  new_in_theaters: { label: 'Rotten Tomatoes', url: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' },
+};
+
+const defaultLists: Record<string, MovieList> = {
+  top_ten: {
+    id: 'top_ten',
+    title: 'Top 10 This Week',
+    source: 'IMDb Top Movies',
+    sourceUrl: 'https://www.imdb.com/search/title/?moviemeter=%2C10',
+    movies: [
+      'The Odyssey',
+      'Masters of the Universe',
+      'Obsession',
+      '72 Hours',
+      'House of the Dragon',
+      'Disclosure Day',
+      'The Hawk',
+      'Project Hail Mary',
+      'Avatar Aang: The Last Airbender',
+      'Backrooms'
+    ],
+    updatedAt: 1771706900000
+  }
+};
+
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
   const [lists, setLists] = useState<Record<string, MovieList>>({});
@@ -24,17 +53,16 @@ export default function Home() {
   const [refreshMessage, setRefreshMessage] = useState('');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (!user) setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
     });
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-
+    let isMounted = true;
     const unsubscribe = onSnapshot(collection(db, 'movie_lists'), (snapshot) => {
+      if (!isMounted) return;
       const fetchedLists: Record<string, MovieList> = {};
       snapshot.docs.forEach(doc => {
         fetchedLists[doc.id] = doc.data() as MovieList;
@@ -43,11 +71,20 @@ export default function Home() {
       setLoading(false);
     }, (error) => {
       console.error("Error fetching lists:", error);
-      setLoading(false);
+      if (isMounted) setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [user]);
+    // Fallback timeout so it never hangs indefinitely
+    const timer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, []);
 
   const handleLogin = async () => {
     try {
@@ -84,38 +121,6 @@ export default function Home() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-2xl shadow-sm border border-neutral-200 max-w-md w-full text-center"
-        >
-          <div className="bg-neutral-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Film className="w-8 h-8 text-neutral-800" />
-          </div>
-          <h1 className="text-2xl font-semibold text-neutral-900 mb-2">My Movie Scraper</h1>
-          <p className="text-neutral-500 mb-8">Sign in to access your personal movie references.</p>
-          
-          <button
-            onClick={handleLogin}
-            className="w-full bg-neutral-900 text-white rounded-xl py-3 font-medium hover:bg-neutral-800 transition-colors"
-          >
-            Sign in with Google
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  const listOrder = ['top_ten', 'in_theaters', 'new_in_theaters'];
-  const defaultSourceInfo: Record<string, { label: string; url: string }> = {
-    top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
-    in_theaters: { label: 'IMDb Showtimes', url: 'https://www.imdb.com/showtimes/' },
-    new_in_theaters: { label: 'Rotten Tomatoes', url: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' },
-  };
-
   return (
     <div className="min-h-screen bg-neutral-50 pb-20">
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-10">
@@ -125,14 +130,26 @@ export default function Home() {
             <h1 className="font-semibold text-neutral-900">Movie References</h1>
           </div>
           
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => signOut(auth)}
-              className="text-neutral-500 hover:text-neutral-900 transition-colors p-2 rounded-full hover:bg-neutral-100"
-              title="Sign Out"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+          <div className="flex items-center gap-3">
+            {user ? (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-neutral-600 hidden sm:inline">{user.email}</span>
+                <button
+                  onClick={() => signOut(auth)}
+                  className="text-neutral-500 hover:text-neutral-900 transition-colors p-2 rounded-full hover:bg-neutral-100"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="text-xs font-medium bg-neutral-100 hover:bg-neutral-200 text-neutral-800 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -169,7 +186,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {listOrder.map(listId => {
-            const listData = lists[listId];
+            const listData = lists[listId] || defaultLists[listId];
             const sourceLabel = listData?.source || defaultSourceInfo[listId]?.label || 'Web Scraper';
             const sourceUrl = listData?.sourceUrl || defaultSourceInfo[listId]?.url;
 

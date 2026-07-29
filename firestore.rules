@@ -12,10 +12,9 @@ service cloud.firestore {
     }
 
     match /movie_lists/{listId} {
-      // Allow read to any authenticated user (since it's a personal app)
-      allow read: if isSignedIn();
-      // Scraper will use Admin SDK which bypasses these rules.
-      // We don't need to allow writes from the client, keeping it secure.
+      // Allow public read access so anyone can view movie references
+      allow read: if true;
+      // Scraper uses Admin SDK which bypasses these rules
       allow write: if false; 
     }
   }
