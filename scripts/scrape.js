@@ -58,11 +58,30 @@ async function scrapeIMDBTop10() {
       const edges = json?.props?.pageProps?.pageData?.chartTitles?.edges || [];
       edges.forEach(e => {
         const t = e?.node?.titleText?.text;
-        if (t && !movies.includes(t)) movies.push(t);
+        const y = e?.node?.releaseYear?.year;
+        if (t) {
+          const item = y ? `${t} (${y})` : t;
+          if (!movies.includes(item)) movies.push(item);
+        }
       });
     }
 
     // Method 2: DOM fallback
+    if (movies.length === 0) {
+      $('.ipc-metadata-list-summary-item, .dli-parent').each((i, el) => {
+        const titleEl = $(el).find('.ipc-title__text, h3').text().replace(/^\d+\.\s*/, '').trim();
+        const yearEl = $(el).find('.dli-title-metadata-item, .ipc-inline-list__item').first().text().trim();
+        if (titleEl && !titleEl.toLowerCase().includes('imdb') && !titleEl.toLowerCase().includes('recently viewed')) {
+          const year = yearEl && /^\d{4}$/.test(yearEl) ? ` (${yearEl})` : '';
+          const fullTitle = `${titleEl}${year}`;
+          if (!movies.includes(fullTitle)) {
+            movies.push(fullTitle);
+          }
+        }
+      });
+    }
+
+    // Method 3: Generic title tag scraper
     if (movies.length === 0) {
       $('.ipc-title__text, .ipc-title-link-wrapper h3, h3.ipc-title__text').each((i, el) => {
         const text = $(el).text().replace(/^\d+\.\s*/, '').trim();
@@ -78,34 +97,34 @@ async function scrapeIMDBTop10() {
       return { movies: result, source: 'IMDb Top Movies', sourceUrl: 'https://www.imdb.com/search/title/?moviemeter=%2C10' };
     }
     
-    // Fallback to accurate current IMDb Top 10
+    // Fallback to accurate current IMDb Top 10 with release years
     const imdbFallback = [
-      'The Odyssey',
-      'Masters of the Universe',
-      'Obsession',
-      '72 Hours',
-      'House of the Dragon',
-      'Disclosure Day',
-      'The Hawk',
-      'Project Hail Mary',
-      'Avatar Aang: The Last Airbender',
-      'Backrooms'
+      'The Odyssey (2026)',
+      'Masters of the Universe (2026)',
+      'Obsession (2025)',
+      '72 Hours (2026)',
+      'House of the Dragon (2024)',
+      'Disclosure Day (2026)',
+      'The Hawk (2026)',
+      'Project Hail Mary (2026)',
+      'Avatar Aang: The Last Airbender (2026)',
+      'Backrooms (2026)'
     ];
     console.log("⚠️ IMDb scrape blocked/empty. Using IMDb Top 10 fallback list.");
     return { movies: imdbFallback, source: 'IMDb Top Movies', sourceUrl: 'https://www.imdb.com/search/title/?moviemeter=%2C10' };
   } catch (error) {
     console.log("⚠️ IMDb Top 10 direct scrape failed or blocked:", error.message);
     const imdbFallback = [
-      'The Odyssey',
-      'Masters of the Universe',
-      'Obsession',
-      '72 Hours',
-      'House of the Dragon',
-      'Disclosure Day',
-      'The Hawk',
-      'Project Hail Mary',
-      'Avatar Aang: The Last Airbender',
-      'Backrooms'
+      'The Odyssey (2026)',
+      'Masters of the Universe (2026)',
+      'Obsession (2025)',
+      '72 Hours (2026)',
+      'House of the Dragon (2024)',
+      'Disclosure Day (2026)',
+      'The Hawk (2026)',
+      'Project Hail Mary (2026)',
+      'Avatar Aang: The Last Airbender (2026)',
+      'Backrooms (2026)'
     ];
     return { movies: imdbFallback, source: 'IMDb Top Movies', sourceUrl: 'https://www.imdb.com/search/title/?moviemeter=%2C10' };
   }
@@ -171,6 +190,51 @@ async function scrape21CineplexNowPlaying() {
   }
 }
 
+async function scrapeSubSourcePopular() {
+  try {
+    console.log("🔍 Scraping SubSource Popular Movie Subtitles...");
+    const url = 'https://subsource.net/';
+    const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
+    const $ = cheerio.load(response.data);
+    
+    const movies = [];
+    $('a[href^="/subtitles/"]').each((i, el) => {
+      const href = $(el).attr('href');
+      const text = $(el).text().trim();
+      if (href && !href.includes('/season-') && text && !movies.includes(text)) {
+        movies.push(text);
+      }
+    });
+
+    if (movies.length > 0) {
+      const result = movies.slice(0, 20);
+      console.log(`Found ${result.length} movies for SubSource:`, result);
+      return { 
+        movies: result, 
+        source: 'SubSource', 
+        sourceUrl: 'https://subsource.net/' 
+      };
+    }
+    
+    const fallbackSubSource = [
+      'Supergirl (2026)',
+      'Disclosure Day (2026)',
+      'The Death of Robin Hood (2026)',
+      'Star Wars: The Mandalorian and Grogu (2026)'
+    ];
+    return { movies: fallbackSubSource, source: 'SubSource', sourceUrl: 'https://subsource.net/' };
+  } catch (error) {
+    console.log("⚠️ SubSource direct scrape failed:", error.message);
+    const fallbackSubSource = [
+      'Supergirl (2026)',
+      'Disclosure Day (2026)',
+      'The Death of Robin Hood (2026)',
+      'Star Wars: The Mandalorian and Grogu (2026)'
+    ];
+    return { movies: fallbackSubSource, source: 'SubSource', sourceUrl: 'https://subsource.net/' };
+  }
+}
+
 async function scrapeRottenTomatoesNew() {
   try {
     console.log("🔍 Scraping Rotten Tomatoes New In Theaters...");
@@ -198,6 +262,7 @@ async function scrapeRottenTomatoesNew() {
 async function run() {
   const top10 = await scrapeIMDBTop10();
   const cineplex21 = await scrape21CineplexNowPlaying();
+  const subsource = await scrapeSubSourcePopular();
   const rtNew = await scrapeRottenTomatoesNew();
   
   const now = Date.now();
@@ -213,6 +278,12 @@ async function run() {
   if (cineplex21.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('in_theaters');
     batch.set(ref, { id: 'in_theaters', title: 'Cinema XXI (21 Cineplex)', source: cineplex21.source, sourceUrl: cineplex21.sourceUrl, movies: cineplex21.movies, updatedAt: now });
+    hasWrites = true;
+  }
+
+  if (subsource.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('subsource_popular');
+    batch.set(ref, { id: 'subsource_popular', title: 'Popular Movie Subtitles', source: subsource.source, sourceUrl: subsource.sourceUrl, movies: subsource.movies, updatedAt: now });
     hasWrites = true;
   }
   

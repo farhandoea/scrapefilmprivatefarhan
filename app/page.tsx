@@ -16,10 +16,11 @@ interface MovieList {
   updatedAt: number;
 }
 
-const listOrder = ['top_ten', 'in_theaters', 'new_in_theaters'];
+const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'new_in_theaters'];
 const defaultSourceInfo: Record<string, { label: string; url: string }> = {
   top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
   in_theaters: { label: 'Cinema 21 (Now Playing)', url: 'https://m.21cineplex.com/id/movies?tabs=now-playing' },
+  subsource_popular: { label: 'SubSource Subtitles', url: 'https://subsource.net/' },
   new_in_theaters: { label: 'Rotten Tomatoes', url: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' },
 };
 
@@ -30,16 +31,16 @@ const defaultLists: Record<string, MovieList> = {
     source: 'IMDb Top Movies',
     sourceUrl: 'https://www.imdb.com/search/title/?moviemeter=%2C10',
     movies: [
-      'The Odyssey',
-      'Masters of the Universe',
-      'Obsession',
-      '72 Hours',
-      'House of the Dragon',
-      'Disclosure Day',
-      'The Hawk',
-      'Project Hail Mary',
-      'Avatar Aang: The Last Airbender',
-      'Backrooms'
+      'The Odyssey (2026)',
+      'Masters of the Universe (2026)',
+      'Obsession (2025)',
+      '72 Hours (2026)',
+      'House of the Dragon (2024)',
+      'Disclosure Day (2026)',
+      'The Hawk (2026)',
+      'Project Hail Mary (2026)',
+      'Avatar Aang: The Last Airbender (2026)',
+      'Backrooms (2026)'
     ],
     updatedAt: 1771706900000
   },
@@ -61,6 +62,19 @@ const defaultLists: Record<string, MovieList> = {
       'The Odyssey (IMAX 2D)',
       'Cek Khodam',
       'Petaka Gunung Welirang'
+    ],
+    updatedAt: 1771706900000
+  },
+  subsource_popular: {
+    id: 'subsource_popular',
+    title: 'Popular Movie Subtitles',
+    source: 'SubSource',
+    sourceUrl: 'https://subsource.net/',
+    movies: [
+      'Supergirl (2026)',
+      'Disclosure Day (2026)',
+      'The Death of Robin Hood (2026)',
+      'Star Wars: The Mandalorian and Grogu (2026)'
     ],
     updatedAt: 1771706900000
   }
@@ -205,7 +219,7 @@ export default function Home() {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {listOrder.map(listId => {
             const listData = lists[listId] || defaultLists[listId];
             const sourceLabel = listData?.source || defaultSourceInfo[listId]?.label || 'Web Scraper';
