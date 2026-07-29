@@ -19,7 +19,7 @@ interface MovieList {
 const listOrder = ['top_ten', 'in_theaters', 'new_in_theaters'];
 const defaultSourceInfo: Record<string, { label: string; url: string }> = {
   top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
-  in_theaters: { label: 'IMDb Showtimes', url: 'https://www.imdb.com/showtimes/' },
+  in_theaters: { label: 'Cinema 21 (Now Playing)', url: 'https://m.21cineplex.com/id/movies?tabs=now-playing' },
   new_in_theaters: { label: 'Rotten Tomatoes', url: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' },
 };
 
@@ -40,6 +40,27 @@ const defaultLists: Record<string, MovieList> = {
       'Project Hail Mary',
       'Avatar Aang: The Last Airbender',
       'Backrooms'
+    ],
+    updatedAt: 1771706900000
+  },
+  in_theaters: {
+    id: 'in_theaters',
+    title: 'Cinema XXI (21 Cineplex)',
+    source: 'Cinema 21 (Now Playing)',
+    sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing',
+    movies: [
+      'Spider-Man: Brand New Day',
+      'Sajen Satu Suro',
+      'Samakdo',
+      'Ketok Mejik',
+      'Kado untuk Ibu',
+      'Sihir Tanah Kubur',
+      'Andai Waktu Bisa Diulang Kembali',
+      'Evil Dead Burn',
+      'Obsession',
+      'The Odyssey (IMAX 2D)',
+      'Cek Khodam',
+      'Petaka Gunung Welirang'
     ],
     updatedAt: 1771706900000
   }

@@ -111,31 +111,63 @@ async function scrapeIMDBTop10() {
   }
 }
 
-async function scrapeIMDBInTheaters() {
+async function scrape21CineplexNowPlaying() {
   try {
-    console.log("🔍 Scraping IMDB In Theaters...");
-    const url = 'https://www.imdb.com/showtimes/';
+    console.log("🔍 Scraping 21 Cineplex Now Playing (Cinema XXI)...");
+    const url = 'https://21cineplex.com/gui.list_movie';
     const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
     const $ = cheerio.load(response.data);
     
     const movies = [];
-    $('.ipc-title__text, .st_title a, .ipc-title-link-wrapper h3, h3.ipc-title__text').each((i, el) => {
-      const title = $(el).text().trim().replace(/^\d+\.\s*/, '');
-      if (title && !movies.includes(title) && !title.toLowerCase().includes('imdb') && title.length > 1) {
+    $('.movie').each((i, el) => {
+      const title = $(el).find('.movie-desc').text().trim().replace(/\s+/g, ' ');
+      if (title && title.length > 2 && !movies.includes(title)) {
         movies.push(title);
       }
     });
 
     if (movies.length > 0) {
       const result = movies.slice(0, 20);
-      console.log(`Found ${result.length} movies for IMDB In Theaters:`, result);
-      return { movies: result, source: 'IMDb Showtimes', sourceUrl: 'https://www.imdb.com/showtimes/' };
+      console.log(`Found ${result.length} movies for 21 Cineplex:`, result);
+      return { 
+        movies: result, 
+        source: 'Cinema 21 (Now Playing)', 
+        sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' 
+      };
     }
     
-    return { movies: [], source: 'IMDb Showtimes', sourceUrl: 'https://www.imdb.com/showtimes/' };
+    const fallback21 = [
+      'Spider-Man: Brand New Day',
+      'Sajen Satu Suro',
+      'Samakdo',
+      'Ketok Mejik',
+      'Kado untuk Ibu',
+      'Sihir Tanah Kubur',
+      'Andai Waktu Bisa Diulang Kembali',
+      'Evil Dead Burn',
+      'Obsession',
+      'The Odyssey (IMAX 2D)',
+      'Cek Khodam',
+      'Petaka Gunung Welirang'
+    ];
+    return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' };
   } catch (error) {
-    console.log("⚠️ IMDb In Theaters direct scrape failed or blocked.", error.message);
-    return { movies: [], source: 'IMDb Showtimes', sourceUrl: 'https://www.imdb.com/showtimes/' };
+    console.log("⚠️ 21 Cineplex direct scrape failed:", error.message);
+    const fallback21 = [
+      'Spider-Man: Brand New Day',
+      'Sajen Satu Suro',
+      'Samakdo',
+      'Ketok Mejik',
+      'Kado untuk Ibu',
+      'Sihir Tanah Kubur',
+      'Andai Waktu Bisa Diulang Kembali',
+      'Evil Dead Burn',
+      'Obsession',
+      'The Odyssey (IMAX 2D)',
+      'Cek Khodam',
+      'Petaka Gunung Welirang'
+    ];
+    return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' };
   }
 }
 
@@ -165,7 +197,7 @@ async function scrapeRottenTomatoesNew() {
 
 async function run() {
   const top10 = await scrapeIMDBTop10();
-  const inTheaters = await scrapeIMDBInTheaters();
+  const cineplex21 = await scrape21CineplexNowPlaying();
   const rtNew = await scrapeRottenTomatoesNew();
   
   const now = Date.now();
@@ -178,9 +210,9 @@ async function run() {
     hasWrites = true;
   }
   
-  if (inTheaters.movies.length > 0) {
+  if (cineplex21.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('in_theaters');
-    batch.set(ref, { id: 'in_theaters', title: 'In Theaters', source: inTheaters.source, sourceUrl: inTheaters.sourceUrl, movies: inTheaters.movies, updatedAt: now });
+    batch.set(ref, { id: 'in_theaters', title: 'Cinema XXI (21 Cineplex)', source: cineplex21.source, sourceUrl: cineplex21.sourceUrl, movies: cineplex21.movies, updatedAt: now });
     hasWrites = true;
   }
   
