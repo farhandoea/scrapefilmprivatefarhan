@@ -1,0 +1,6 @@
+{
+  "name": "Movie Scraper Reference",
+  "description": "A personal movie reference app that displays scraped data from IMDb and Rotten Tomatoes, synced via GitHub Actions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

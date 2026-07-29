@@ -1,0 +1,35 @@
+{
+  "entities": {
+    "MovieList": {
+      "title": "Movie List",
+      "description": "A list of movies scraped from a specific source",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The ID of the list (e.g., top_ten)"
+        },
+        "movies": {
+          "type": "array",
+          "description": "Array of movie titles",
+          "items": {
+            "type": "string"
+          }
+        },
+        "updatedAt": {
+          "type": "number",
+          "description": "Timestamp of the last update"
+        }
+      },
+      "required": ["id", "movies", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "movie_lists/{listId}": {
+      "schema": {
+        "$ref": "#/entities/MovieList"
+      },
+      "description": "Stores the scraped movie lists"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Auth helper
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    match /movie_lists/{listId} {
+      // Allow read to any authenticated user (since it's a personal app)
+      allow read: if isSignedIn();
+      // Scraper will use Admin SDK which bypasses these rules.
+      // We don't need to allow writes from the client, keeping it secure.
+      allow write: if false; 
+    }
+  }
+}
