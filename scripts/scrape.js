@@ -355,9 +355,10 @@ async function syncToGoogleSheets(sheetId, allStats) {
   if (allStats.length === 0) return;
   
   try {
+    const privateKey = serviceAccount.private_key ? serviceAccount.private_key.replace(/\\n/g, '\n') : '';
     const jwt = new JWT({
       email: serviceAccount.client_email,
-      key: serviceAccount.private_key,
+      key: privateKey,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
     
