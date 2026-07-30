@@ -2,6 +2,8 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
+const { JWT } = require('google-auth-library');
+const { GoogleSpreadsheet } = require('google-spreadsheet');
 
 // Initialize Firebase Admin
 const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -12,8 +14,8 @@ if (!serviceAccountKey) {
   process.exit(1);
 }
 
+let serviceAccount;
 try {
-  let serviceAccount;
   const rawKey = serviceAccountKey.trim();
   if (rawKey.startsWith('{')) {
     serviceAccount = JSON.parse(rawKey);
@@ -259,6 +261,136 @@ async function scrapeRottenTomatoesNew() {
   }
 }
 
+async function trackMovieHistory(db, listId, listName, movies) {
+  const historyRef = db.collection('movie_history').doc(listId);
+  const doc = await historyRef.get();
+  
+  let historyData = {};
+  if (doc.exists) {
+    historyData = doc.data();
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+  const todayMs = Date.now();
+
+  const updatedHistory = {};
+  const statsList = [];
+  const currentKeys = new Set();
+  
+  // 1. Process all currently scraped movies
+  movies.forEach((movie) => {
+    const key = Buffer.from(movie).toString('base64');
+    currentKeys.add(key);
+
+    let ageDays = 1;
+    let firstSeenStr = todayStr;
+    
+    if (historyData[key] && historyData[key].firstSeenDate) {
+      firstSeenStr = historyData[key].firstSeenDate; 
+      const firstSeenTime = new Date(firstSeenStr).getTime();
+      const ageMs = todayMs - firstSeenTime;
+      ageDays = Math.max(1, Math.floor(ageMs / (1000 * 60 * 60 * 24)) + 1);
+    } 
+
+    updatedHistory[key] = {
+      movie: movie,
+      firstSeenDate: firstSeenStr,
+      lastSeenDate: todayStr,
+      ageDays: ageDays,
+      status: 'Aktif'
+    };
+    
+    // Format for Google Sheets
+    statsList.push({
+      'Tanggal Scraping': todayStr,
+      'Daftar': listName,
+      'Nama Film': movie,
+      'Terakhir Dilihat': todayStr,
+      'Umur (Hari)': ageDays,
+      'Status': 'Aktif'
+    });
+  });
+
+  // 2. Process movies that were previously tracked but disappeared in today's scrape
+  Object.keys(historyData).forEach((key) => {
+    if (!currentKeys.has(key)) {
+      const prev = historyData[key];
+      // If it was active previously and now gone, record that it exited the list today
+      if (prev.status !== 'Keluar dari Daftar') {
+        updatedHistory[key] = {
+          ...prev,
+          status: 'Keluar dari Daftar'
+        };
+
+        statsList.push({
+          'Tanggal Scraping': todayStr,
+          'Daftar': listName,
+          'Nama Film': prev.movie,
+          'Terakhir Dilihat': prev.lastSeenDate || todayStr,
+          'Umur (Hari)': prev.ageDays || 1,
+          'Status': 'Keluar dari Daftar'
+        });
+      } else {
+        // Keep existing record
+        updatedHistory[key] = prev;
+      }
+    }
+  });
+
+  const finalHistory = { ...historyData, ...updatedHistory };
+  await historyRef.set(finalHistory);
+
+  return statsList;
+}
+
+async function syncToGoogleSheets(sheetId, allStats) {
+  if (!sheetId) {
+    console.warn("⚠️ GOOGLE_SHEET_ID not provided. Skipping Google Sheets sync.");
+    return;
+  }
+  if (!serviceAccount) {
+    console.warn("⚠️ Service account not initialized. Skipping Google Sheets sync.");
+    return;
+  }
+  if (allStats.length === 0) return;
+  
+  try {
+    const jwt = new JWT({
+      email: serviceAccount.client_email,
+      key: serviceAccount.private_key,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    
+    const doc = new GoogleSpreadsheet(sheetId, jwt);
+    await doc.loadInfo();
+    
+    const headers = ['Tanggal Scraping', 'Daftar', 'Nama Film', 'Terakhir Dilihat', 'Umur (Hari)', 'Status'];
+
+    let sheet = doc.sheetsByTitle['Movie History'];
+    if (!sheet) {
+      if (doc.sheetCount > 0) {
+        sheet = doc.sheetsByIndex[0];
+        await sheet.updateProperties({ title: 'Movie History' });
+        await sheet.setHeaderRow(headers);
+      } else {
+        sheet = await doc.addSheet({ title: 'Movie History', headerValues: headers });
+      }
+    } else {
+      // Ensure header row exists
+      try {
+        await sheet.loadHeaderRow();
+      } catch(e) {
+        await sheet.setHeaderRow(headers);
+      }
+    }
+    
+    await sheet.addRows(allStats);
+    console.log(`✅ Appended ${allStats.length} rows to Google Sheet '${doc.title}'!`);
+  } catch (error) {
+    console.error("⚠️ Failed to sync to Google Sheets:", error.message);
+  }
+}
+
 async function run() {
   const top10 = await scrapeIMDBTop10();
   const cineplex21 = await scrape21CineplexNowPlaying();
@@ -269,33 +401,47 @@ async function run() {
   let hasWrites = false;
   const batch = db.batch();
   
+  let allStats = [];
+
   if (top10.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('top_ten');
     batch.set(ref, { id: 'top_ten', title: 'Top 10 This Week', source: top10.source, sourceUrl: top10.sourceUrl, movies: top10.movies, updatedAt: now });
     hasWrites = true;
+    const stats = await trackMovieHistory(db, 'top_ten', 'Top 10 This Week', top10.movies);
+    allStats = allStats.concat(stats);
   }
   
   if (cineplex21.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('in_theaters');
     batch.set(ref, { id: 'in_theaters', title: 'Cinema XXI (21 Cineplex)', source: cineplex21.source, sourceUrl: cineplex21.sourceUrl, movies: cineplex21.movies, updatedAt: now });
     hasWrites = true;
+    const stats = await trackMovieHistory(db, 'in_theaters', 'Cinema XXI (21 Cineplex)', cineplex21.movies);
+    allStats = allStats.concat(stats);
   }
 
   if (subsource.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('subsource_popular');
     batch.set(ref, { id: 'subsource_popular', title: 'Popular Movie Subtitles', source: subsource.source, sourceUrl: subsource.sourceUrl, movies: subsource.movies, updatedAt: now });
     hasWrites = true;
+    const stats = await trackMovieHistory(db, 'subsource_popular', 'Popular Movie Subtitles', subsource.movies);
+    allStats = allStats.concat(stats);
   }
   
   if (rtNew.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('new_in_theaters');
     batch.set(ref, { id: 'new_in_theaters', title: 'New in Theaters', source: rtNew.source, sourceUrl: rtNew.sourceUrl, movies: rtNew.movies, updatedAt: now });
     hasWrites = true;
+    const stats = await trackMovieHistory(db, 'new_in_theaters', 'New in Theaters', rtNew.movies);
+    allStats = allStats.concat(stats);
   }
   
   if (hasWrites) {
     await batch.commit();
     console.log("🎉 Successfully synced scraped movies to Firebase!");
+    
+    // Sync to Google Sheets if configured
+    const sheetId = process.env.GOOGLE_SHEET_ID;
+    await syncToGoogleSheets(sheetId, allStats);
   } else {
     console.warn("⚠️ No movie data scraped to write to Firebase.");
   }
