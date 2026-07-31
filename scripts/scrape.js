@@ -261,7 +261,7 @@ async function scrapeRottenTomatoesNew() {
   }
 }
 
-async function trackMovieHistory(db, listId, listName, movies) {
+async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   const historyRef = db.collection('movie_history').doc(listId);
   const doc = await historyRef.get();
   
@@ -303,6 +303,7 @@ async function trackMovieHistory(db, listId, listName, movies) {
     // Format for Google Sheets
     statsList.push({
       'Tanggal Scraping': todayStr,
+      'Source': sourceName,
       'Daftar': listName,
       'Nama Film': movie,
       'Terakhir Dilihat': todayStr,
@@ -324,6 +325,7 @@ async function trackMovieHistory(db, listId, listName, movies) {
 
         statsList.push({
           'Tanggal Scraping': todayStr,
+          'Source': sourceName,
           'Daftar': listName,
           'Nama Film': prev.movie,
           'Terakhir Dilihat': prev.lastSeenDate || todayStr,
@@ -376,28 +378,86 @@ async function syncToGoogleSheets(sheetId, allStats) {
     const doc = new GoogleSpreadsheet(cleanSheetId, jwt);
     await doc.loadInfo();
     
-    const headers = ['Tanggal Scraping', 'Daftar', 'Nama Film', 'Terakhir Dilihat', 'Umur (Hari)', 'Status'];
+    const headers = ['Tanggal Scraping', 'Source', 'Daftar', 'Nama Film', 'Terakhir Dilihat', 'Umur (Hari)', 'Status'];
 
-    let sheet = doc.sheetsByTitle['Movie History'];
-    if (!sheet) {
-      if (doc.sheetCount > 0) {
-        sheet = doc.sheetsByIndex[0];
-        await sheet.updateProperties({ title: 'Movie History' });
-        await sheet.setHeaderRow(headers);
-      } else {
-        sheet = await doc.addSheet({ title: 'Movie History', headerValues: headers });
-      }
-    } else {
-      // Ensure header row exists
-      try {
-        await sheet.loadHeaderRow();
-      } catch(e) {
-        await sheet.setHeaderRow(headers);
-      }
+    const groupedStats = {};
+    for (const stat of allStats) {
+      const sourceName = stat['Source'] || 'Other';
+      if (!groupedStats[sourceName]) groupedStats[sourceName] = [];
+      groupedStats[sourceName].push(stat);
     }
-    
-    await sheet.addRows(allStats);
-    console.log(`✅ Appended ${allStats.length} rows to Google Sheet '${doc.title}'!`);
+
+    for (const [sourceName, stats] of Object.entries(groupedStats)) {
+      let sheet = doc.sheetsByTitle[sourceName];
+      if (!sheet) {
+        // Try to rename the default sheet if it's the only one and not already renamed
+        const defaultSheet = doc.sheetsByIndex[0];
+        if (doc.sheetCount === 1 && (defaultSheet.title === 'Sheet1' || defaultSheet.title === 'Movie History')) {
+          sheet = defaultSheet;
+          await sheet.updateProperties({ title: sourceName });
+          await sheet.setHeaderRow(headers);
+        } else {
+          sheet = await doc.addSheet({ title: sourceName, headerValues: headers });
+        }
+      } else {
+        // Ensure header row exists
+        try {
+          await sheet.loadHeaderRow();
+        } catch(e) {
+          await sheet.setHeaderRow(headers);
+        }
+      }
+      
+      // Fetch existing rows to prepend new data at the top
+      let existingData = [];
+      try {
+        const rows = await sheet.getRows();
+        existingData = rows.map(r => r.toObject());
+      } catch (e) {
+        // Ignore errors if empty
+      }
+      
+      const activeRows = stats.filter(s => s['Status'] === 'Aktif');
+      const activeNames = new Set(activeRows.map(s => s['Nama Film']));
+
+      const inactiveMap = new Map();
+      
+      // Preserve previously inactive movies from the sheet
+      for (const row of existingData) {
+        if (row['Nama Film'] && !activeNames.has(row['Nama Film'])) {
+          inactiveMap.set(row['Nama Film'], row);
+        }
+      }
+      
+      // Add newly inactive movies from today's scrape
+      for (const stat of stats) {
+        if (stat['Status'] !== 'Aktif' && stat['Nama Film']) {
+          inactiveMap.set(stat['Nama Film'], stat);
+        }
+      }
+
+      const inactiveRows = Array.from(inactiveMap.values());
+
+      if (existingData.length > 0) {
+        try {
+          await sheet.clearRows();
+        } catch (e) {
+          // Ignore clear errors
+        }
+      }
+
+      let dataToWrite = [...activeRows];
+
+      // Add a 2-row boundary if there is inactive data
+      if (inactiveRows.length > 0) {
+        dataToWrite.push({});
+        dataToWrite.push({});
+        dataToWrite = dataToWrite.concat(inactiveRows);
+      }
+
+      await sheet.addRows(dataToWrite);
+      console.log(`✅ Prepended ${stats.length} new rows to Google Sheet '${sourceName}'!`);
+    }
   } catch (error) {
     console.error("⚠️ Failed to sync to Google Sheets:", error.message);
     if (error.response && error.response.data) console.error(JSON.stringify(error.response.data, null, 2));
@@ -420,7 +480,7 @@ async function run() {
     const ref = db.collection('movie_lists').doc('top_ten');
     batch.set(ref, { id: 'top_ten', title: 'Top 10 This Week', source: top10.source, sourceUrl: top10.sourceUrl, movies: top10.movies, updatedAt: now });
     hasWrites = true;
-    const stats = await trackMovieHistory(db, 'top_ten', 'Top 10 This Week', top10.movies);
+    const stats = await trackMovieHistory(db, 'top_ten', 'Top 10 This Week', top10.movies, 'IMDb');
     allStats = allStats.concat(stats);
   }
   
@@ -428,7 +488,7 @@ async function run() {
     const ref = db.collection('movie_lists').doc('in_theaters');
     batch.set(ref, { id: 'in_theaters', title: 'Cinema XXI (21 Cineplex)', source: cineplex21.source, sourceUrl: cineplex21.sourceUrl, movies: cineplex21.movies, updatedAt: now });
     hasWrites = true;
-    const stats = await trackMovieHistory(db, 'in_theaters', 'Cinema XXI (21 Cineplex)', cineplex21.movies);
+    const stats = await trackMovieHistory(db, 'in_theaters', 'Cinema XXI (21 Cineplex)', cineplex21.movies, 'Cinema XXI');
     allStats = allStats.concat(stats);
   }
 
@@ -436,7 +496,7 @@ async function run() {
     const ref = db.collection('movie_lists').doc('subsource_popular');
     batch.set(ref, { id: 'subsource_popular', title: 'Popular Movie Subtitles', source: subsource.source, sourceUrl: subsource.sourceUrl, movies: subsource.movies, updatedAt: now });
     hasWrites = true;
-    const stats = await trackMovieHistory(db, 'subsource_popular', 'Popular Movie Subtitles', subsource.movies);
+    const stats = await trackMovieHistory(db, 'subsource_popular', 'Popular Movie Subtitles', subsource.movies, 'Subsource');
     allStats = allStats.concat(stats);
   }
   
@@ -444,7 +504,7 @@ async function run() {
     const ref = db.collection('movie_lists').doc('new_in_theaters');
     batch.set(ref, { id: 'new_in_theaters', title: 'New in Theaters', source: rtNew.source, sourceUrl: rtNew.sourceUrl, movies: rtNew.movies, updatedAt: now });
     hasWrites = true;
-    const stats = await trackMovieHistory(db, 'new_in_theaters', 'New in Theaters', rtNew.movies);
+    const stats = await trackMovieHistory(db, 'new_in_theaters', 'New in Theaters', rtNew.movies, 'Rotten Tomatoes');
     allStats = allStats.concat(stats);
   }
   
