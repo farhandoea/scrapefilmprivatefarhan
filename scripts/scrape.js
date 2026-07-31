@@ -372,6 +372,7 @@ async function syncToGoogleSheets(sheetId, allStats) {
     });
     
     console.log(`📊 Connecting to Google Sheet ID: ${cleanSheetId}...`);
+    console.log(`🔑 Using Service Account Email: ${serviceAccount.client_email}`);
     const doc = new GoogleSpreadsheet(cleanSheetId, jwt);
     await doc.loadInfo();
     
@@ -399,6 +400,7 @@ async function syncToGoogleSheets(sheetId, allStats) {
     console.log(`✅ Appended ${allStats.length} rows to Google Sheet '${doc.title}'!`);
   } catch (error) {
     console.error("⚠️ Failed to sync to Google Sheets:", error.message);
+    if (error.response && error.response.data) console.error(JSON.stringify(error.response.data, null, 2));
   }
 }
 
