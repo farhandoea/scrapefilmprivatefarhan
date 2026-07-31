@@ -353,6 +353,15 @@ async function syncToGoogleSheets(sheetId, allStats) {
     return;
   }
   if (allStats.length === 0) return;
+
+  // Sanitize sheetId in case full URL or extra whitespace/newlines were passed
+  let cleanSheetId = (sheetId || '').trim();
+  const urlMatch = cleanSheetId.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  if (urlMatch) {
+    cleanSheetId = urlMatch[1];
+  } else {
+    cleanSheetId = cleanSheetId.split('/')[0].split('?')[0].replace(/['"]/g, '').trim();
+  }
   
   try {
     const privateKey = serviceAccount.private_key ? serviceAccount.private_key.replace(/\\n/g, '\n') : '';
@@ -362,7 +371,8 @@ async function syncToGoogleSheets(sheetId, allStats) {
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
     
-    const doc = new GoogleSpreadsheet(sheetId, jwt);
+    console.log(`📊 Connecting to Google Sheet ID: ${cleanSheetId}...`);
+    const doc = new GoogleSpreadsheet(cleanSheetId, jwt);
     await doc.loadInfo();
     
     const headers = ['Tanggal Scraping', 'Daftar', 'Nama Film', 'Terakhir Dilihat', 'Umur (Hari)', 'Status'];
