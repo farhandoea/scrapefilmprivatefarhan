@@ -237,28 +237,33 @@ async function scrapeSubSourcePopular() {
   }
 }
 
-async function scrapeRottenTomatoesNew() {
-  try {
-    console.log("🔍 Scraping Rotten Tomatoes New In Theaters...");
-    const url = 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest';
-    const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
-    const $ = cheerio.load(response.data);
-    
-    const movies = [];
-    $('[data-qa="discovery-media-list-item-title"], span[aria-label="title"], .p--small[data-qa="discovery-media-list-item-title"]').each((i, el) => {
-      const title = $(el).text().trim();
-      if (title && !movies.includes(title)) {
-        movies.push(title);
-      }
-    });
-
-    const result = movies.slice(0, 20);
-    console.log(`Found ${result.length} movies for Rotten Tomatoes:`, result);
-    return { movies: result, source: 'Rotten Tomatoes', sourceUrl: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' };
-  } catch (error) {
-    console.error("⚠️ Error scraping Rotten Tomatoes:", error.message);
-    return { movies: [], source: 'Unknown', sourceUrl: '' };
+async function scrapeSubDLPopularMovies() {
+  const allMovies = new Set();
+  console.log("🔍 Scraping SubDL Popular Movies (Pages 1-10)...");
+  
+  for (let page = 1; page <= 10; page++) {
+    try {
+      const url = page === 1 ? 'https://subdl.com/id/trends/movies' : `https://subdl.com/id/trends/movies/${page}`;
+      const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
+      const $ = cheerio.load(response.data);
+      
+      $('h3').each((i, el) => {
+        const title = $(el).text().trim();
+        const year = $(el).next('p').text().trim();
+        if (title) {
+          const fullTitle = year ? `${title} (${year})` : title;
+          allMovies.add(fullTitle);
+        }
+      });
+      console.log(`Scraped page ${page}, total unique movies so far: ${allMovies.size}`);
+    } catch (error) {
+      console.error(`⚠️ Error scraping SubDL page ${page}:`, error.message);
+    }
   }
+  
+  const result = Array.from(allMovies);
+  console.log(`Found ${result.length} movies for SubDL Popular Movies`);
+  return { movies: result, source: 'SubDL Popular Movies', sourceUrl: 'https://subdl.com/id/trends/movies' };
 }
 
 async function trackMovieHistory(db, listId, listName, movies, sourceName) {
@@ -468,7 +473,7 @@ async function run() {
   const top10 = await scrapeIMDBTop10();
   const cineplex21 = await scrape21CineplexNowPlaying();
   const subsource = await scrapeSubSourcePopular();
-  const rtNew = await scrapeRottenTomatoesNew();
+  const subdlPopular = await scrapeSubDLPopularMovies();
   
   const now = Date.now();
   let hasWrites = false;
@@ -500,11 +505,11 @@ async function run() {
     allStats = allStats.concat(stats);
   }
   
-  if (rtNew.movies.length > 0) {
-    const ref = db.collection('movie_lists').doc('new_in_theaters');
-    batch.set(ref, { id: 'new_in_theaters', title: 'New in Theaters', source: rtNew.source, sourceUrl: rtNew.sourceUrl, movies: rtNew.movies, updatedAt: now });
+  if (subdlPopular.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('subdl_popular_movies');
+    batch.set(ref, { id: 'subdl_popular_movies', title: 'SubDL Popular Movies', source: subdlPopular.source, sourceUrl: subdlPopular.sourceUrl, movies: subdlPopular.movies, updatedAt: now });
     hasWrites = true;
-    const stats = await trackMovieHistory(db, 'new_in_theaters', 'New in Theaters', rtNew.movies, 'Rotten Tomatoes');
+    const stats = await trackMovieHistory(db, 'subdl_popular_movies', 'SubDL Popular Movies', subdlPopular.movies, 'SubDL Popular Movies');
     allStats = allStats.concat(stats);
   }
   

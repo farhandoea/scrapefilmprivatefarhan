@@ -2,8 +2,8 @@ name: Scrape Movies and Sync to Firebase
 
 on:
   schedule:
-    # Run every day at 02:00 UTC (09:00 WIB)
-    - cron: '0 2 * * *'
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
   workflow_dispatch:
     # Allow manual triggers from the website or GitHub Actions tab
 

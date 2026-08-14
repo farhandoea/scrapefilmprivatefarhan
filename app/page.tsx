@@ -16,12 +16,12 @@ interface MovieList {
   updatedAt: number;
 }
 
-const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'new_in_theaters'];
+const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'subdl_popular_movies'];
 const defaultSourceInfo: Record<string, { label: string; url: string }> = {
   top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
   in_theaters: { label: 'Cinema 21 (Now Playing)', url: 'https://m.21cineplex.com/id/movies?tabs=now-playing' },
   subsource_popular: { label: 'SubSource Subtitles', url: 'https://subsource.net/' },
-  new_in_theaters: { label: 'Rotten Tomatoes', url: 'https://www.rottentomatoes.com/browse/movies_in_theaters/sort:newest' },
+  subdl_popular_movies: { label: 'SubDL Popular Movies', url: 'https://subdl.com/id/trends/movies' },
 };
 
 const defaultLists: Record<string, MovieList> = {
@@ -75,6 +75,17 @@ const defaultLists: Record<string, MovieList> = {
       'Disclosure Day (2026)',
       'The Death of Robin Hood (2026)',
       'Star Wars: The Mandalorian and Grogu (2026)'
+    ],
+    updatedAt: 1771706900000
+  },
+  subdl_popular_movies: {
+    id: 'subdl_popular_movies',
+    title: 'SubDL Popular Movies',
+    source: 'SubDL Popular Movies',
+    sourceUrl: 'https://subdl.com/id/trends/movies',
+    movies: [
+      'Spider-Man: Brand New Day (2026)',
+      'The Odyssey (2026)'
     ],
     updatedAt: 1771706900000
   }
