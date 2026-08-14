@@ -16,12 +16,13 @@ interface MovieList {
   updatedAt: number;
 }
 
-const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'subdl_popular_movies'];
+const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'subdl_popular_movies', 'subdl_most_downloaded'];
 const defaultSourceInfo: Record<string, { label: string; url: string }> = {
   top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
   in_theaters: { label: 'Cinema 21 (Now Playing)', url: 'https://m.21cineplex.com/id/movies?tabs=now-playing' },
   subsource_popular: { label: 'SubSource Subtitles', url: 'https://subsource.net/' },
   subdl_popular_movies: { label: 'SubDL Popular Movies', url: 'https://subdl.com/id/trends/movies' },
+  subdl_most_downloaded: { label: 'SubDL Most Downloaded', url: 'https://subdl.com/id/latest/popular' },
 };
 
 const defaultLists: Record<string, MovieList> = {
@@ -86,6 +87,16 @@ const defaultLists: Record<string, MovieList> = {
     movies: [
       'Spider-Man: Brand New Day (2026)',
       'The Odyssey (2026)'
+    ],
+    updatedAt: 1771706900000
+  },
+  subdl_most_downloaded: {
+    id: 'subdl_most_downloaded',
+    title: 'SubDL Most Downloaded Subtitle',
+    source: 'SubDL Most Downloaded',
+    sourceUrl: 'https://subdl.com/id/latest/popular',
+    movies: [
+      'Spider-Man: Brand New Day (2026)'
     ],
     updatedAt: 1771706900000
   }
@@ -230,7 +241,7 @@ export default function Home() {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           {listOrder.map(listId => {
             const listData = lists[listId] || defaultLists[listId];
             const sourceLabel = listData?.source || defaultSourceInfo[listId]?.label || 'Web Scraper';

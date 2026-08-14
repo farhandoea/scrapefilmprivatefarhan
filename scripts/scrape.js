@@ -266,6 +266,34 @@ async function scrapeSubDLPopularMovies() {
   return { movies: result, source: 'SubDL Popular Movies', sourceUrl: 'https://subdl.com/id/trends/movies' };
 }
 
+async function scrapeSubDLMostDownloaded() {
+  try {
+    console.log("🔍 Scraping SubDL Most Downloaded Subtitles...");
+    const url = 'https://subdl.com/id/latest/popular';
+    const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
+    const $ = cheerio.load(response.data);
+    
+    const movies = [];
+    $('h3').each((i, el) => {
+      const title = $(el).text().trim();
+      const year = $(el).next('p').text().trim();
+      if (title) {
+        const fullTitle = year ? `${title} (${year})` : title;
+        if (!movies.includes(fullTitle)) {
+          movies.push(fullTitle);
+        }
+      }
+    });
+
+    const result = movies.slice(0, 15);
+    console.log(`Found ${result.length} movies for SubDL Most Downloaded:`, result);
+    return { movies: result, source: 'SubDL Most Downloaded', sourceUrl: 'https://subdl.com/id/latest/popular' };
+  } catch (error) {
+    console.error("⚠️ Error scraping SubDL Most Downloaded:", error.message);
+    return { movies: [], source: 'Unknown', sourceUrl: '' };
+  }
+}
+
 async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   const historyRef = db.collection('movie_history').doc(listId);
   const doc = await historyRef.get();
@@ -474,6 +502,7 @@ async function run() {
   const cineplex21 = await scrape21CineplexNowPlaying();
   const subsource = await scrapeSubSourcePopular();
   const subdlPopular = await scrapeSubDLPopularMovies();
+  const subdlMostDownloaded = await scrapeSubDLMostDownloaded();
   
   const now = Date.now();
   let hasWrites = false;
@@ -510,6 +539,14 @@ async function run() {
     batch.set(ref, { id: 'subdl_popular_movies', title: 'SubDL Popular Movies', source: subdlPopular.source, sourceUrl: subdlPopular.sourceUrl, movies: subdlPopular.movies, updatedAt: now });
     hasWrites = true;
     const stats = await trackMovieHistory(db, 'subdl_popular_movies', 'SubDL Popular Movies', subdlPopular.movies, 'SubDL Popular Movies');
+    allStats = allStats.concat(stats);
+  }
+  
+  if (subdlMostDownloaded.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('subdl_most_downloaded');
+    batch.set(ref, { id: 'subdl_most_downloaded', title: 'SubDL Most Downloaded Subtitle', source: subdlMostDownloaded.source, sourceUrl: subdlMostDownloaded.sourceUrl, movies: subdlMostDownloaded.movies, updatedAt: now });
+    hasWrites = true;
+    const stats = await trackMovieHistory(db, 'subdl_most_downloaded', 'SubDL Most Downloaded Subtitle', subdlMostDownloaded.movies, 'SubDL Most Downloaded');
     allStats = allStats.concat(stats);
   }
   
