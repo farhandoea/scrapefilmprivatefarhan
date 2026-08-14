@@ -96,7 +96,21 @@ const defaultLists: Record<string, MovieList> = {
     source: 'SubDL Most Downloaded',
     sourceUrl: 'https://subdl.com/id/latest/popular',
     movies: [
-      'Spider-Man: Brand New Day (2026)'
+      'The End of Oak Street (2026)',
+      'Silo (2023)',
+      'Ted Lasso (2020)',
+      'Tires (2024)',
+      'Black Clover (2017)',
+      'Wait For Me To Be Successful Later (2026)',
+      'Re:ZERO -Starting Life in Another World- (2016)',
+      'The Invite (2026)',
+      'Smoking Behind the Supermarket with You (2026)',
+      'The Exiled Heavy Knight Knows How to Game the System (2026)',
+      'A Shop for Killers (2024)',
+      'From Overshadowed to Overpowered: Second Reincarnation of a Talentless Sage (2026)',
+      'Reacher (2022)',
+      'The Last House (2026)',
+      'The Shards (2026)'
     ],
     updatedAt: 1771706900000
   }
@@ -241,7 +255,7 @@ export default function Home() {
           </motion.div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory">
           {listOrder.map(listId => {
             const listData = lists[listId] || defaultLists[listId];
             const sourceLabel = listData?.source || defaultSourceInfo[listId]?.label || 'Web Scraper';
@@ -252,24 +266,24 @@ export default function Home() {
                 key={listId}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm flex flex-col"
+                className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-sm flex flex-col flex-none w-[85vw] sm:w-[320px] lg:w-[350px] snap-center sm:snap-start"
               >
                 <div className="bg-neutral-100 p-4 border-b border-neutral-200">
-                  <div className="flex items-start justify-between gap-2 mb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-2">
                     <h3 className="font-semibold text-neutral-900 leading-snug">{listData?.title || (listId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}</h3>
                     {sourceUrl ? (
                       <a
                         href={sourceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-neutral-200/90 hover:bg-neutral-300 text-neutral-800 border border-neutral-300/60 inline-flex items-center gap-1 transition-colors"
+                        className="shrink-0 text-[11px] font-medium px-3 py-1 rounded-full bg-neutral-200/90 hover:bg-neutral-300 text-neutral-800 border border-neutral-300/60 inline-flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap self-start"
                         title={`Visit source: ${sourceUrl}`}
                       >
                         <span>{sourceLabel}</span>
                         <ExternalLink className="w-3 h-3 text-neutral-500" />
                       </a>
                     ) : (
-                      <span className="shrink-0 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-neutral-200/90 text-neutral-700 border border-neutral-300/60">
+                      <span className="shrink-0 text-[11px] font-medium px-3 py-1 rounded-full bg-neutral-200/90 text-neutral-700 border border-neutral-300/60 whitespace-nowrap self-start">
                         {sourceLabel}
                       </span>
                     )}

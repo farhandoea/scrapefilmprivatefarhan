@@ -274,14 +274,10 @@ async function scrapeSubDLMostDownloaded() {
     const $ = cheerio.load(response.data);
     
     const movies = [];
-    $('h3').each((i, el) => {
+    $('a[href*="/subtitle/"]').each((i, el) => {
       const title = $(el).text().trim();
-      const year = $(el).next('p').text().trim();
-      if (title) {
-        const fullTitle = year ? `${title} (${year})` : title;
-        if (!movies.includes(fullTitle)) {
-          movies.push(fullTitle);
-        }
+      if (title && !movies.includes(title)) {
+        movies.push(title);
       }
     });
 
