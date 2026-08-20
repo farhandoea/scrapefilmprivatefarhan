@@ -384,11 +384,16 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
     let ageDays = 1;
     let firstSeenStr = todayStr;
     
-    if (historyData[key] && historyData[key].firstSeenDate) {
-      firstSeenStr = historyData[key].firstSeenDate; 
-      const firstSeenTime = new Date(firstSeenStr).getTime();
-      const ageMs = todayMs - firstSeenTime;
-      ageDays = Math.max(1, Math.floor(ageMs / (1000 * 60 * 60 * 24)) + 1);
+    if (historyData[key]) {
+      const prev = historyData[key];
+      firstSeenStr = prev.firstSeenDate || todayStr;
+      
+      // Hitung umur secara kumulatif berdasarkan hari aktif saja
+      ageDays = prev.ageDays || 1;
+      // Jika ini adalah scraping di hari yang berbeda, tambah 1 hari
+      if (prev.lastSeenDate && prev.lastSeenDate !== todayStr) {
+        ageDays += 1;
+      }
     } 
 
     updatedHistory[key] = {

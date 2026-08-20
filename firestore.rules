@@ -17,5 +17,11 @@ service cloud.firestore {
       // Scraper uses Admin SDK which bypasses these rules
       allow write: if false; 
     }
+
+    match /movie_history/{docId} {
+      // Allow public read access to history data
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
