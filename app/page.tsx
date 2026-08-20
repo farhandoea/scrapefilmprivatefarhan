@@ -121,16 +121,16 @@ const defaultLists: Record<string, MovieList> = {
     source: 'Netflix Indonesia',
     sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia',
     movies: [
-      'Wait for Me To Be Successful Later',
-      'The Last House',
-      'Na Willa',
-      'Extinction',
-      'The Suicide Squad',
-      'Danur: The Last Chapter',
-      'Last Chance To Save',
-      'Suzzanna: Witchcraft',
-      'Suicide Squad',
-      'Edge of Tomorrow'
+      'Wait for Me To Be Successful Later (2026)',
+      'The Last House (2026)',
+      'Na Willa (2026)',
+      'Extinction (2015)',
+      'The Suicide Squad (2021)',
+      'Danur: The Last Chapter (2026)',
+      'Last Chance To Save (2026)',
+      'Suzzanna: Witchcraft (2026)',
+      'Suicide Squad (2016)',
+      'Edge of Tomorrow (2014)'
     ],
     updatedAt: 1771706900000
   }
