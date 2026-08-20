@@ -443,12 +443,25 @@ export default function Home() {
                         </div>
                       ) : (
                         <ul className="space-y-4">
-                          {listData.movies.map((movie, idx) => (
-                            <li key={idx} className="flex items-start gap-4 text-base bg-neutral-50/50 p-3 rounded-lg border border-neutral-100/50">
-                              <span className="text-neutral-400 font-mono text-sm mt-0.5 shrink-0 w-6 text-right">{idx + 1}.</span>
-                              <span className="text-neutral-800 font-medium leading-tight">{movie}</span>
-                            </li>
-                          ))}
+                          {listData.movies.map((movie, idx) => {
+                            const listHistory = historyData[listId] || {};
+                            const historyEntry = Object.values(listHistory).find((m: any) => m.movie === movie) as any;
+                            const posterUrl = historyEntry?.posterUrl;
+                            
+                            return (
+                              <li key={idx} className="flex items-start gap-4 text-base bg-neutral-50/50 p-3 rounded-lg border border-neutral-100/50">
+                                <span className="text-neutral-400 font-mono text-sm mt-1 shrink-0 w-6 text-right">{idx + 1}.</span>
+                                {posterUrl ? (
+                                  <img src={posterUrl} alt={movie} className="w-12 h-16 object-cover rounded shadow-sm shrink-0 bg-neutral-200" />
+                                ) : (
+                                  <div className="w-12 h-16 rounded bg-neutral-200 shrink-0 flex items-center justify-center text-neutral-400 shadow-sm">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                  </div>
+                                )}
+                                <span className="text-neutral-800 font-medium leading-tight pt-1">{movie}</span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
@@ -572,7 +585,18 @@ export default function Home() {
                         {filteredMovies.map((m: any, idx: number) => (
                           <tr key={idx} className="hover:bg-neutral-50 transition-colors">
                             <td className="px-6 py-4 whitespace-nowrap text-xs text-neutral-500 font-medium">{m.sourceName}</td>
-                            <td className="px-6 py-4 font-medium text-neutral-900">{m.movie}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                {m.posterUrl ? (
+                                  <img src={m.posterUrl} alt={m.movie} className="w-10 h-14 object-cover rounded shadow-sm shrink-0 bg-neutral-200" />
+                                ) : (
+                                  <div className="w-10 h-14 rounded bg-neutral-200 shrink-0 flex items-center justify-center text-neutral-400 shadow-sm">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                  </div>
+                                )}
+                                <span className="font-medium text-neutral-900">{m.movie}</span>
+                              </div>
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">{m.firstSeenDate}</td>
                             <td className="px-6 py-4 whitespace-nowrap">{m.lastSeenDate}</td>
                             <td className="px-6 py-4 font-mono">{m.ageDays || 1} Hari</td>

@@ -376,17 +376,34 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   const statsList = [];
   const currentKeys = new Set();
   
+  const TMDB_API_KEY = 'b25dd37341986cae793e130ed3ccb7f3';
+  const getPosterUrl = async (title) => {
+    try {
+      // Clean title: remove years like "(2026)" or exact matches for better search
+      let cleanTitle = title.replace(/\s*\(\d{4}\)\s*/, '').trim();
+      const res = await axios.get(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(cleanTitle)}`);
+      if (res.data.results && res.data.results.length > 0 && res.data.results[0].poster_path) {
+        return `https://image.tmdb.org/t/p/w300${res.data.results[0].poster_path}`;
+      }
+    } catch (e) {
+      console.warn(`⚠️ Could not fetch TMDB poster for ${title}`);
+    }
+    return null;
+  };
+
   // 1. Process all currently scraped movies
-  movies.forEach((movie) => {
+  for (const movie of movies) {
     const key = Buffer.from(movie).toString('base64');
     currentKeys.add(key);
 
     let ageDays = 1;
     let firstSeenStr = todayStr;
+    let posterUrl = null;
     
     if (historyData[key]) {
       const prev = historyData[key];
       firstSeenStr = prev.firstSeenDate || todayStr;
+      posterUrl = prev.posterUrl || null;
       
       // Hitung umur secara kumulatif berdasarkan hari aktif saja
       ageDays = prev.ageDays || 1;
@@ -396,12 +413,19 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
       }
     } 
 
+    if (!posterUrl) {
+      posterUrl = await getPosterUrl(movie);
+      // Wait a tiny bit to avoid API rate limits if making many calls
+      await new Promise(r => setTimeout(r, 100)); 
+    }
+
     updatedHistory[key] = {
       movie: movie,
       firstSeenDate: firstSeenStr,
       lastSeenDate: todayStr,
       ageDays: ageDays,
-      status: 'Aktif'
+      status: 'Aktif',
+      posterUrl: posterUrl
     };
     
     // Format for Google Sheets
@@ -414,7 +438,7 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
       'Umur (Hari)': ageDays,
       'Status': 'Aktif'
     });
-  });
+  }
 
   // 2. Process movies that were previously tracked but disappeared in today's scrape
   Object.keys(historyData).forEach((key) => {
