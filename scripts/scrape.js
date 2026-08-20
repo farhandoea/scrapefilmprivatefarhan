@@ -457,9 +457,16 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   }
 
   // 2. Process movies that were previously tracked but disappeared in today's scrape
-  Object.keys(historyData).forEach((key) => {
+  for (const key of Object.keys(historyData)) {
     if (!currentKeys.has(key)) {
       const prev = historyData[key];
+      
+      // Fetch missing poster for historical data that is no longer active
+      if (!prev.posterUrl) {
+        prev.posterUrl = await getPosterUrl(prev.movie);
+        await new Promise(r => setTimeout(r, 100)); // Rate limit protection
+      }
+
       // If it was active previously and now gone, record that it exited the list today
       if (prev.status !== 'Keluar dari Daftar') {
         updatedHistory[key] = {
@@ -481,7 +488,7 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
         updatedHistory[key] = prev;
       }
     }
-  });
+  }
 
   const finalHistory = { ...historyData, ...updatedHistory };
   await historyRef.set(finalHistory);
