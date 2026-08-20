@@ -16,13 +16,14 @@ interface MovieList {
   updatedAt: number;
 }
 
-const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'subdl_popular_movies', 'subdl_most_downloaded'];
+const listOrder = ['top_ten', 'in_theaters', 'subsource_popular', 'subdl_popular_movies', 'subdl_most_downloaded', 'netflix_indonesia'];
 const defaultSourceInfo: Record<string, { label: string; url: string }> = {
   top_ten: { label: 'IMDb Top Movies', url: 'https://www.imdb.com/search/title/?moviemeter=%2C10' },
   in_theaters: { label: 'Cinema 21 (Now Playing)', url: 'https://m.21cineplex.com/id/movies?tabs=now-playing' },
   subsource_popular: { label: 'SubSource Subtitles', url: 'https://subsource.net/' },
   subdl_popular_movies: { label: 'SubDL Popular Movies', url: 'https://subdl.com/id/trends/movies' },
   subdl_most_downloaded: { label: 'SubDL Most Downloaded', url: 'https://subdl.com/id/latest/popular' },
+  netflix_indonesia: { label: 'Netflix Indonesia', url: 'https://www.netflix.com/tudum/top10/indonesia' },
 };
 
 const defaultLists: Record<string, MovieList> = {
@@ -111,6 +112,25 @@ const defaultLists: Record<string, MovieList> = {
       'Reacher (2022)',
       'The Last House (2026)',
       'The Shards (2026)'
+    ],
+    updatedAt: 1771706900000
+  },
+  netflix_indonesia: {
+    id: 'netflix_indonesia',
+    title: 'Netflix Top 10 Indonesia',
+    source: 'Netflix Indonesia',
+    sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia',
+    movies: [
+      'Wait for Me To Be Successful Later',
+      'The Last House',
+      'Na Willa',
+      'Extinction',
+      'The Suicide Squad',
+      'Danur: The Last Chapter',
+      'Last Chance To Save',
+      'Suzzanna: Witchcraft',
+      'Suicide Squad',
+      'Edge of Tomorrow'
     ],
     updatedAt: 1771706900000
   }

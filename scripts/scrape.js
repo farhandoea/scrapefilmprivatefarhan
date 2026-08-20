@@ -290,6 +290,64 @@ async function scrapeSubDLMostDownloaded() {
   }
 }
 
+async function scrapeNetflixIndonesia() {
+  try {
+    console.log("🔍 Scraping Netflix Indonesia Top 10...");
+    const url = 'https://www.netflix.com/tudum/top10/indonesia';
+    const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
+    const $ = cheerio.load(response.data);
+    
+    const movies = [];
+    $('table tbody tr').each((i, tr) => {
+      const buttonText = $(tr).find('td').first().find('button').text().trim();
+      let title = buttonText;
+      if (!title) {
+        const firstTdText = $(tr).find('td').first().text().trim();
+        title = firstTdText.replace(/^\d+/, '').trim();
+      }
+      if (title && !movies.includes(title)) {
+        movies.push(title);
+      }
+    });
+
+    if (movies.length > 0) {
+      const result = movies.slice(0, 10);
+      console.log(`Found ${result.length} movies for Netflix Indonesia Top 10:`, result);
+      return { movies: result, source: 'Netflix Indonesia', sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia' };
+    }
+
+    const fallbackNetflix = [
+      'Wait for Me To Be Successful Later',
+      'The Last House',
+      'Na Willa',
+      'Extinction',
+      'The Suicide Squad',
+      'Danur: The Last Chapter',
+      'Last Chance To Save',
+      'Suzzanna: Witchcraft',
+      'Suicide Squad',
+      'Edge of Tomorrow'
+    ];
+    console.log("⚠️ Netflix Indonesia scrape returned empty. Using fallback list.");
+    return { movies: fallbackNetflix, source: 'Netflix Indonesia', sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia' };
+  } catch (error) {
+    console.error("⚠️ Error scraping Netflix Indonesia:", error.message);
+    const fallbackNetflix = [
+      'Wait for Me To Be Successful Later',
+      'The Last House',
+      'Na Willa',
+      'Extinction',
+      'The Suicide Squad',
+      'Danur: The Last Chapter',
+      'Last Chance To Save',
+      'Suzzanna: Witchcraft',
+      'Suicide Squad',
+      'Edge of Tomorrow'
+    ];
+    return { movies: fallbackNetflix, source: 'Netflix Indonesia', sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia' };
+  }
+}
+
 async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   const historyRef = db.collection('movie_history').doc(listId);
   const doc = await historyRef.get();
@@ -499,6 +557,7 @@ async function run() {
   const subsource = await scrapeSubSourcePopular();
   const subdlPopular = await scrapeSubDLPopularMovies();
   const subdlMostDownloaded = await scrapeSubDLMostDownloaded();
+  const netflixIndonesia = await scrapeNetflixIndonesia();
   
   const now = Date.now();
   let hasWrites = false;
@@ -543,6 +602,14 @@ async function run() {
     batch.set(ref, { id: 'subdl_most_downloaded', title: 'SubDL Most Downloaded Subtitle', source: subdlMostDownloaded.source, sourceUrl: subdlMostDownloaded.sourceUrl, movies: subdlMostDownloaded.movies, updatedAt: now });
     hasWrites = true;
     const stats = await trackMovieHistory(db, 'subdl_most_downloaded', 'SubDL Most Downloaded Subtitle', subdlMostDownloaded.movies, 'SubDL Most Downloaded');
+    allStats = allStats.concat(stats);
+  }
+  
+  if (netflixIndonesia.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('netflix_indonesia');
+    batch.set(ref, { id: 'netflix_indonesia', title: 'Netflix Top 10 Indonesia', source: netflixIndonesia.source, sourceUrl: netflixIndonesia.sourceUrl, movies: netflixIndonesia.movies, updatedAt: now });
+    hasWrites = true;
+    const stats = await trackMovieHistory(db, 'netflix_indonesia', 'Netflix Top 10 Indonesia', netflixIndonesia.movies, 'Netflix Indonesia');
     allStats = allStats.concat(stats);
   }
   
