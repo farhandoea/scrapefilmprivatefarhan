@@ -141,9 +141,14 @@ async function scrape21CineplexNowPlaying() {
     
     const movies = [];
     $('.movie').each((i, el) => {
-      const title = $(el).find('.movie-desc').text().trim().replace(/\s+/g, ' ');
-      if (title && title.length > 2 && !movies.includes(title)) {
-        movies.push(title);
+      let title = $(el).find('.movie-desc').text().trim().replace(/\s+/g, ' ');
+      if (title && title.length > 2) {
+        // Append current year
+        const currentYear = new Date().getFullYear();
+        title = `${title} (${currentYear})`;
+        if (!movies.includes(title)) {
+          movies.push(title);
+        }
       }
     });
 
@@ -158,35 +163,35 @@ async function scrape21CineplexNowPlaying() {
     }
     
     const fallback21 = [
-      'Spider-Man: Brand New Day',
-      'Sajen Satu Suro',
-      'Samakdo',
-      'Ketok Mejik',
-      'Kado untuk Ibu',
-      'Sihir Tanah Kubur',
-      'Andai Waktu Bisa Diulang Kembali',
-      'Evil Dead Burn',
-      'Obsession',
-      'The Odyssey (IMAX 2D)',
-      'Cek Khodam',
-      'Petaka Gunung Welirang'
+      `Spider-Man: Brand New Day (${new Date().getFullYear()})`,
+      `Sajen Satu Suro (${new Date().getFullYear()})`,
+      `Samakdo (${new Date().getFullYear()})`,
+      `Ketok Mejik (${new Date().getFullYear()})`,
+      `Kado untuk Ibu (${new Date().getFullYear()})`,
+      `Sihir Tanah Kubur (${new Date().getFullYear()})`,
+      `Andai Waktu Bisa Diulang Kembali (${new Date().getFullYear()})`,
+      `Evil Dead Burn (${new Date().getFullYear()})`,
+      `Obsession (${new Date().getFullYear()})`,
+      `The Odyssey (IMAX 2D) (${new Date().getFullYear()})`,
+      `Cek Khodam (${new Date().getFullYear()})`,
+      `Petaka Gunung Welirang (${new Date().getFullYear()})`
     ];
     return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' };
   } catch (error) {
     console.log("⚠️ 21 Cineplex direct scrape failed:", error.message);
     const fallback21 = [
-      'Spider-Man: Brand New Day',
-      'Sajen Satu Suro',
-      'Samakdo',
-      'Ketok Mejik',
-      'Kado untuk Ibu',
-      'Sihir Tanah Kubur',
-      'Andai Waktu Bisa Diulang Kembali',
-      'Evil Dead Burn',
-      'Obsession',
-      'The Odyssey (IMAX 2D)',
-      'Cek Khodam',
-      'Petaka Gunung Welirang'
+      `Spider-Man: Brand New Day (${new Date().getFullYear()})`,
+      `Sajen Satu Suro (${new Date().getFullYear()})`,
+      `Samakdo (${new Date().getFullYear()})`,
+      `Ketok Mejik (${new Date().getFullYear()})`,
+      `Kado untuk Ibu (${new Date().getFullYear()})`,
+      `Sihir Tanah Kubur (${new Date().getFullYear()})`,
+      `Andai Waktu Bisa Diulang Kembali (${new Date().getFullYear()})`,
+      `Evil Dead Burn (${new Date().getFullYear()})`,
+      `Obsession (${new Date().getFullYear()})`,
+      `The Odyssey (IMAX 2D) (${new Date().getFullYear()})`,
+      `Cek Khodam (${new Date().getFullYear()})`,
+      `Petaka Gunung Welirang (${new Date().getFullYear()})`
     ];
     return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' };
   }
@@ -379,11 +384,22 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   const TMDB_API_KEY = 'b25dd37341986cae793e130ed3ccb7f3';
   const getPosterUrl = async (title) => {
     try {
-      // Clean title: remove years like "(2026)" or exact matches for better search
-      let cleanTitle = title.replace(/\s*\(\d{4}\)\s*/, '').trim();
-      const res = await axios.get(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(cleanTitle)}`);
-      if (res.data.results && res.data.results.length > 0 && res.data.results[0].poster_path) {
-        return `https://image.tmdb.org/t/p/w300${res.data.results[0].poster_path}`;
+      // Clean title: remove years like "(2026)", IMAX tags, Fans Screening, etc.
+      let cleanTitle = title
+        .replace(/\s*\(\d{4}\)\s*/g, '')
+        .replace(/\s*\(\s*IMAX\s*[^)]*\)\s*/ig, '')
+        .replace(/\s*-\s*Fans Screening\s*/ig, '')
+        .trim();
+        
+      // Use search/multi to find both Movies and TV Shows
+      const res = await axios.get(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(cleanTitle)}`);
+      
+      if (res.data.results && res.data.results.length > 0) {
+        // Find the first result that has a poster_path
+        const match = res.data.results.find(r => r.poster_path);
+        if (match) {
+          return `https://image.tmdb.org/t/p/w500${match.poster_path}`; // Using w500 for better grid quality
+        }
       }
     } catch (e) {
       console.warn(`⚠️ Could not fetch TMDB poster for ${title}`);
@@ -552,8 +568,14 @@ async function syncToGoogleSheets(sheetId, allStats) {
       
       // Preserve previously inactive movies from the sheet
       for (const row of existingData) {
-        if (row['Nama Film'] && !activeNames.has(row['Nama Film'])) {
-          inactiveMap.set(row['Nama Film'], row);
+        if (row['Nama Film']) {
+          // MIGRATION: Append current year to old Cinema XXI entries
+          if (sourceName === 'Cinema XXI' && !row['Nama Film'].endsWith(')')) {
+            row['Nama Film'] = `${row['Nama Film']} (${new Date().getFullYear()})`;
+          }
+          if (!activeNames.has(row['Nama Film'])) {
+            inactiveMap.set(row['Nama Film'], row);
+          }
         }
       }
       
@@ -593,6 +615,37 @@ async function syncToGoogleSheets(sheetId, allStats) {
 }
 
 async function run() {
+  // --- MIGRATION BLOCK: Append year to old Cinema XXI history ---
+  try {
+    const historyRef = db.collection('movie_history').doc('in_theaters');
+    const docSnap = await historyRef.get();
+    if (docSnap.exists) {
+      const data = docSnap.data();
+      let migrated = false;
+      const suffix = ` (${new Date().getFullYear()})`;
+      
+      for (const key of Object.keys(data)) {
+        const entry = data[key];
+        if (entry.movie && !entry.movie.endsWith(')')) {
+          const newName = `${entry.movie}${suffix}`;
+          const newKey = Buffer.from(newName).toString('base64');
+          entry.movie = newName;
+          data[newKey] = entry;
+          delete data[key];
+          migrated = true;
+        }
+      }
+      
+      if (migrated) {
+        await historyRef.set(data);
+        console.log("✅ Migrated old Cinema XXI history to include year suffix!");
+      }
+    }
+  } catch (e) {
+    console.error("Migration error:", e);
+  }
+  // --- END MIGRATION BLOCK ---
+
   const top10 = await scrapeIMDBTop10();
   const cineplex21 = await scrape21CineplexNowPlaying();
   const subsource = await scrapeSubSourcePopular();

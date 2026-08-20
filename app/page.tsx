@@ -442,27 +442,42 @@ export default function Home() {
                           <div>No data available.<br/>Click refresh to scrape.</div>
                         </div>
                       ) : (
-                        <ul className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                           {listData.movies.map((movie, idx) => {
                             const listHistory = historyData[listId] || {};
                             const historyEntry = Object.values(listHistory).find((m: any) => m.movie === movie) as any;
                             const posterUrl = historyEntry?.posterUrl;
+                            const status = historyEntry?.status || 'Aktif';
+                            const ageDays = historyEntry?.ageDays || 1;
                             
                             return (
-                              <li key={idx} className="flex items-start gap-4 text-base bg-neutral-50/50 p-3 rounded-lg border border-neutral-100/50">
-                                <span className="text-neutral-400 font-mono text-sm mt-1 shrink-0 w-6 text-right">{idx + 1}.</span>
-                                {posterUrl ? (
-                                  <img src={posterUrl} alt={movie} className="w-12 h-16 object-cover rounded shadow-sm shrink-0 bg-neutral-200" />
-                                ) : (
-                                  <div className="w-12 h-16 rounded bg-neutral-200 shrink-0 flex items-center justify-center text-neutral-400 shadow-sm">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                              <div key={idx} className="flex flex-col bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                                <div className="relative aspect-[2/3] w-full bg-neutral-200 overflow-hidden">
+                                  <div className="absolute top-2 left-2 z-10 w-7 h-7 bg-black/60 rounded-full flex items-center justify-center text-white font-bold text-xs backdrop-blur-sm">
+                                    {idx + 1}
                                   </div>
-                                )}
-                                <span className="text-neutral-800 font-medium leading-tight pt-1">{movie}</span>
-                              </li>
+                                  {posterUrl ? (
+                                    <img src={posterUrl} alt={movie} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                  ) : (
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400">
+                                      <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                      <span className="text-xs font-medium">No Poster</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="p-4 flex flex-col flex-1">
+                                  <h4 className="font-semibold text-neutral-900 line-clamp-2 leading-tight mb-auto">{movie}</h4>
+                                  <div className="mt-4 flex items-center justify-between text-xs border-t border-neutral-100 pt-3">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                                      {status}
+                                    </span>
+                                    <span className="font-mono text-neutral-700 font-bold">{ageDays} Hari</span>
+                                  </div>
+                                </div>
+                              </div>
                             );
                           })}
-                        </ul>
+                        </div>
                       )}
                     </div>
                   </motion.div>
@@ -564,51 +579,46 @@ export default function Home() {
                   </div>
                 </div>
                 
-                <div className="p-0 overflow-x-auto">
+                <div className="p-4 md:p-6 bg-neutral-50/50">
                   {filteredMovies.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-center text-neutral-400 py-12 text-sm">
+                    <div className="h-full flex items-center justify-center text-center text-neutral-400 py-12 text-sm bg-white rounded-xl border border-neutral-200">
                       <div>Data historis kosong atau tidak ditemukan.</div>
                     </div>
                   ) : (
-                    <table className="w-full text-left text-sm text-neutral-600">
-                      <thead className="bg-neutral-50 border-b border-neutral-200 text-xs uppercase text-neutral-500 font-medium">
-                        <tr>
-                          <th className="px-6 py-4">Sumber</th>
-                          <th className="px-6 py-4">Nama Film</th>
-                          <th className="px-6 py-4">Pertama Dilihat</th>
-                          <th className="px-6 py-4">Terakhir Dilihat</th>
-                          <th className="px-6 py-4">Umur (Hari)</th>
-                          <th className="px-6 py-4">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-200">
-                        {filteredMovies.map((m: any, idx: number) => (
-                          <tr key={idx} className="hover:bg-neutral-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap text-xs text-neutral-500 font-medium">{m.sourceName}</td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                {m.posterUrl ? (
-                                  <img src={m.posterUrl} alt={m.movie} className="w-10 h-14 object-cover rounded shadow-sm shrink-0 bg-neutral-200" />
-                                ) : (
-                                  <div className="w-10 h-14 rounded bg-neutral-200 shrink-0 flex items-center justify-center text-neutral-400 shadow-sm">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                  </div>
-                                )}
-                                <span className="font-medium text-neutral-900">{m.movie}</span>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                      {filteredMovies.map((m: any, idx: number) => (
+                        <div key={idx} className="flex flex-col bg-white rounded-xl border border-neutral-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                          <div className="relative aspect-[2/3] w-full bg-neutral-200 overflow-hidden">
+                            <div className="absolute top-2 right-2 z-10">
+                               <span className="bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm uppercase tracking-wider">{m.sourceName}</span>
+                            </div>
+                            {m.posterUrl ? (
+                              <img src={m.posterUrl} alt={m.movie} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400">
+                                <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span className="text-xs font-medium">No Poster</span>
                               </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">{m.firstSeenDate}</td>
-                            <td className="px-6 py-4 whitespace-nowrap">{m.lastSeenDate}</td>
-                            <td className="px-6 py-4 font-mono">{m.ageDays || 1} Hari</td>
-                            <td className="px-6 py-4">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${m.status === 'Aktif' ? 'bg-green-100 text-green-800' : 'bg-neutral-100 text-neutral-800'}`}>
-                                {m.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            )}
+                          </div>
+                          <div className="p-4 flex flex-col flex-1">
+                            <h4 className="font-semibold text-neutral-900 line-clamp-2 leading-tight mb-auto">{m.movie}</h4>
+                            <div className="mt-4 flex flex-col gap-2 text-[11px] text-neutral-500 border-t border-neutral-100 pt-3">
+                              <div className="flex justify-between items-center">
+                                <span>First: {m.firstSeenDate}</span>
+                                <span>Last: {m.lastSeenDate}</span>
+                              </div>
+                              <div className="flex items-center justify-between mt-1">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${m.status === 'Aktif' ? 'bg-green-100 text-green-700' : 'bg-neutral-100 text-neutral-600'}`}>
+                                  {m.status}
+                                </span>
+                                <span className="font-mono text-neutral-700 font-bold">{m.ageDays || 1} Hari</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </motion.div>
