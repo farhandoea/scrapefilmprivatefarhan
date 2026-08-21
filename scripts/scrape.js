@@ -41,7 +41,8 @@ const db = getFirestore(databaseId);
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+  'X-Forwarded-For': '103.10.192.0'
 };
 
 async function scrapeIMDBTop10() {
@@ -153,7 +154,7 @@ async function scrape21CineplexNowPlaying() {
     });
 
     if (movies.length > 0) {
-      const result = movies.slice(0, 20);
+      const result = movies;
       console.log(`Found ${result.length} movies for 21 Cineplex:`, result);
       return { 
         movies: result, 
@@ -214,7 +215,7 @@ async function scrapeSubSourcePopular() {
     });
 
     if (movies.length > 0) {
-      const result = movies.slice(0, 20);
+      const result = movies;
       console.log(`Found ${result.length} movies for SubSource:`, result);
       return { 
         movies: result, 
@@ -365,14 +366,110 @@ async function scrapeNetflixIndonesia() {
   }
 }
 
+const APPLE_HBO_YEAR_MAP = {
+  // Apple TV+
+  'F1 The Movie': '2025',
+  'F1': '2025',
+  'Greyhound': '2020',
+  'The Family Plan': '2023',
+  'The Family Plan 2': '2025',
+  'The Gorge': '2025',
+  'Eternity': '2025',
+  'Ghosted': '2023',
+  'Luck': '2022',
+  'Napoleon': '2023',
+  'The Dink': '2025',
+  'Argylle': '2024',
+  'Killers of the Flower Moon': '2023',
+  'CODA': '2021',
+  'Palmer': '2021',
+  'Finch': '2021',
+  'Emancipation': '2022',
+  'Tetris': '2023',
+  'Wolfs': '2024',
+  'The Instigators': '2024',
+  'Blitz': '2024',
+  'Fly Me to the Moon': '2024',
+  'Causeway': '2022',
+  'Raymond & Ray': '2022',
+  'Sharper': '2023',
+  'Flora and Son': '2023',
+  'The Pigeon Tunnel': '2023',
+  'Swan Song': '2021',
+  'Cherry': '2021',
+  'The Banker': '2020',
+  'On the Rocks': '2020',
+  'Wolfwalkers': '2020',
+
+  // HBO Max
+  'My Bias, My Boss': '2026',
+  'Lanterns': '2026',
+  'House of the Dragon': '2022',
+  'Primate': '2026',
+  'Undercover Chef – Korea': '2026',
+  'Undercover Chef - Korea': '2026',
+  '13 Hours: The Secret Soldiers Of Benghazi': '2016',
+  '13 Hours: The Secret Soldiers of Benghazi': '2016',
+  'Crazy Rich Asians': '2018',
+  'Margaux': '2022',
+  'Mortal Kombat Ii': '2025',
+  'Mortal Kombat II': '2025',
+  'IT: Welcome to Derry': '2025',
+  'Welcome to Derry': '2025',
+  'Dune: Prophecy': '2024',
+  'The Penguin': '2024',
+  'The Last of Us': '2023'
+};
+
+async function formatWithReleaseYear(rawTitle) {
+  if (!rawTitle) return '';
+  let title = rawTitle.trim();
+  if (/\(\d{4}\)$/.test(title)) return title;
+  
+  if (APPLE_HBO_YEAR_MAP[title]) {
+    return `${title} (${APPLE_HBO_YEAR_MAP[title]})`;
+  }
+  
+  const cleanTitle = title.replace(/\s*-\s*.*$/, '').replace(/:\s*.*$/, '').trim();
+  if (APPLE_HBO_YEAR_MAP[cleanTitle]) {
+    return `${title} (${APPLE_HBO_YEAR_MAP[cleanTitle]})`;
+  }
+
+  try {
+    const res = await axios.get(`https://api.themoviedb.org/3/search/multi?api_key=b25dd37341986cae793e130ed3ccb7f3&query=${encodeURIComponent(cleanTitle || title)}`, { timeout: 3000 });
+    if (res.data.results && res.data.results.length > 0) {
+      const match = res.data.results[0];
+      const date = match.release_date || match.first_air_date;
+      if (date && /^\d{4}/.test(date)) {
+        return `${title} (${date.substring(0, 4)})`;
+      }
+    }
+  } catch (e) {}
+
+  return `${title} (2025)`;
+}
+
 async function scrapeAppleTVTop10() {
+  const url = 'https://tv.apple.com/id/collection/top10-movies/uts.col.ChartsMovies.tvs.sbd.4000?ctx_brand=tvs.sbd.4000&ctx_cvs=uts.tcvs.tv-plus-canvas&ctx_shelf=uts.shlf.gen.BrandChart_tvs.sbd.4000_Movie';
+  const fallbackApple = [
+    'F1 The Movie (2025)',
+    'Greyhound (2020)',
+    'The Family Plan (2023)',
+    'The Family Plan 2 (2025)',
+    'The Gorge (2025)',
+    'Luck (2022)',
+    'Eternity (2025)',
+    'Ghosted (2023)',
+    'The Dink (2025)',
+    'Napoleon (2023)'
+  ];
+
   try {
     console.log("🔍 Scraping Apple TV+ Top 10 Movies...");
-    const url = 'https://tv.apple.com/id/collection/top10-movies/uts.col.ChartsMovies.tvs.sbd.4000?ctx_brand=tvs.sbd.4000&ctx_cvs=uts.tcvs.tv-plus-canvas&ctx_shelf=uts.shlf.gen.BrandChart_tvs.sbd.4000_Movie';
     const response = await axios.get(url, { headers: HEADERS, timeout: 10000 });
     const $ = cheerio.load(response.data);
     
-    const movies = [];
+    const rawMovies = [];
     $('script[type="application/json"]').each((i, el) => {
       try {
         const json = JSON.parse($(el).html());
@@ -383,8 +480,8 @@ async function scrapeAppleTVTop10() {
                 if (shelf.items && Array.isArray(shelf.items)) {
                   for (let item of shelf.items) {
                     const title = item.contextAction?.title || item.ariaLabel || item.title;
-                    if (title && !movies.includes(title)) {
-                      movies.push(title);
+                    if (title && !rawMovies.includes(title)) {
+                      rawMovies.push(title);
                     }
                   }
                 }
@@ -395,52 +492,46 @@ async function scrapeAppleTVTop10() {
       } catch (e) {}
     });
 
-    if (movies.length > 0) {
-      const result = movies.slice(0, 10);
-      console.log(`Found ${result.length} movies for Apple TV+ Top 10:`, result);
-      return { movies: result, source: 'Apple TV+ (Top 10)', sourceUrl: url };
+    if (rawMovies.length > 0) {
+      const top10Raw = rawMovies.slice(0, 10);
+      const formattedMovies = [];
+      for (const t of top10Raw) {
+        const formatted = await formatWithReleaseYear(t);
+        formattedMovies.push(formatted);
+      }
+      console.log(`Found ${formattedMovies.length} movies for Apple TV+ Top 10:`, formattedMovies);
+      return { movies: formattedMovies, source: 'Apple TV+ (Top 10)', sourceUrl: url };
     }
 
-    const fallbackApple = [
-      'F1 The Movie',
-      'Greyhound',
-      'The Family Plan',
-      'The Family Plan 2',
-      'The Gorge',
-      'Luck',
-      'Eternity',
-      'Ghosted',
-      'The Dink',
-      'Napoleon'
-    ];
     console.log("⚠️ Apple TV+ scrape returned empty. Using fallback list.");
     return { movies: fallbackApple, source: 'Apple TV+ (Top 10)', sourceUrl: url };
   } catch (error) {
     console.error("⚠️ Error scraping Apple TV+:", error.message);
-    const fallbackApple = [
-      'F1 The Movie',
-      'Greyhound',
-      'The Family Plan',
-      'The Family Plan 2',
-      'The Gorge',
-      'Luck',
-      'Eternity',
-      'Ghosted',
-      'The Dink',
-      'Napoleon'
-    ];
-    return { movies: fallbackApple, source: 'Apple TV+ (Top 10)', sourceUrl: 'https://tv.apple.com/id/collection/top10-movies/uts.col.ChartsMovies.tvs.sbd.4000?ctx_brand=tvs.sbd.4000&ctx_cvs=uts.tcvs.tv-plus-canvas&ctx_shelf=uts.shlf.gen.BrandChart_tvs.sbd.4000_Movie' };
+    return { movies: fallbackApple, source: 'Apple TV+ (Top 10)', sourceUrl: url };
   }
 }
 
 async function scrapeHBOMaxTop10() {
+  const url = 'https://www.hbomax.com/id/id';
+  const fallbackHBO = [
+    'My Bias, My Boss (2026)',
+    'Lanterns (2026)',
+    'House of the Dragon (2022)',
+    'Primate (2026)',
+    'Undercover Chef – Korea (2026)',
+    '13 Hours: The Secret Soldiers Of Benghazi (2016)',
+    'Crazy Rich Asians (2018)',
+    'Margaux (2022)',
+    'Mortal Kombat II (2025)',
+    'IT: Welcome to Derry (2025)'
+  ];
+
   try {
     console.log("🔍 Scraping HBO Max Indonesia (10 Teratas Hari Ini)...");
-    const url = 'https://www.hbomax.com/id/id';
     const response = await axios.get(url, { headers: HEADERS, timeout: 10000 });
     const $ = cheerio.load(response.data);
     
-    let movies = [];
+    let rawMovies = [];
     
     // Strategy 1: Find <h2> with "10 Teratas Hari Ini" or "10 Teratas"
     $("h2").each((i, el) => {
@@ -449,28 +540,28 @@ async function scrapeHBOMaxTop10() {
         const section = $(el).closest(".content-tray, section, .collection-content");
         section.find("img[alt]").each((j, imgEl) => {
           const alt = $(imgEl).attr("alt");
-          if (alt && alt.trim() && !movies.includes(alt.trim()) && movies.length < 10) {
-            movies.push(alt.trim());
+          if (alt && alt.trim() && !rawMovies.includes(alt.trim()) && rawMovies.length < 10) {
+            rawMovies.push(alt.trim());
           }
         });
       }
     });
 
     // Strategy 2: Parse script tags containing "10 Teratas Hari Ini"
-    if (movies.length === 0) {
+    if (rawMovies.length === 0) {
       $("script[type=\"application/json\"]").each((i, el) => {
         try {
           const content = $(el).html() || "";
           if (content.includes("10 Teratas")) {
             const json = JSON.parse(content);
             function traverse(obj) {
-              if (!obj || movies.length >= 10) return;
+              if (!obj || rawMovies.length >= 10) return;
               if (typeof obj === "object") {
                 if (typeof obj.header === "string" && obj.header.toLowerCase().includes("10 teratas")) {
                   if (Array.isArray(obj.items)) {
                     for (let it of obj.items) {
                       const title = it.title || it.name || it.metadata?.title;
-                      if (title && !movies.includes(title)) movies.push(title);
+                      if (title && !rawMovies.includes(title)) rawMovies.push(title);
                     }
                   }
                 }
@@ -483,41 +574,22 @@ async function scrapeHBOMaxTop10() {
       });
     }
 
-    if (movies.length > 0) {
-      const result = movies.slice(0, 10);
-      console.log(`Found ${result.length} movies for HBO Max Top 10:`, result);
-      return { movies: result, source: 'HBO Max (10 Teratas)', sourceUrl: url };
+    if (rawMovies.length > 0) {
+      const top10Raw = rawMovies.slice(0, 10);
+      const formattedMovies = [];
+      for (const t of top10Raw) {
+        const formatted = await formatWithReleaseYear(t);
+        formattedMovies.push(formatted);
+      }
+      console.log(`Found ${formattedMovies.length} movies for HBO Max Top 10:`, formattedMovies);
+      return { movies: formattedMovies, source: 'HBO Max (10 Teratas)', sourceUrl: url };
     }
 
-    const fallbackHBO = [
-      'My Bias, My Boss',
-      'Lanterns',
-      'House of the Dragon',
-      'Primate',
-      'Undercover Chef – Korea',
-      '13 Hours: The Secret Soldiers Of Benghazi',
-      'Crazy Rich Asians',
-      'Margaux',
-      'Mortal Kombat Ii',
-      'IT: Welcome to Derry'
-    ];
     console.log("⚠️ HBO Max scrape returned empty. Using fallback list.");
     return { movies: fallbackHBO, source: 'HBO Max (10 Teratas)', sourceUrl: url };
   } catch (error) {
     console.error("⚠️ Error scraping HBO Max:", error.message);
-    const fallbackHBO = [
-      'My Bias, My Boss',
-      'Lanterns',
-      'House of the Dragon',
-      'Primate',
-      'Undercover Chef – Korea',
-      '13 Hours: The Secret Soldiers Of Benghazi',
-      'Crazy Rich Asians',
-      'Margaux',
-      'Mortal Kombat Ii',
-      'IT: Welcome to Derry'
-    ];
-    return { movies: fallbackHBO, source: 'HBO Max (10 Teratas)', sourceUrl: 'https://www.hbomax.com/id/id' };
+    return { movies: fallbackHBO, source: 'HBO Max (10 Teratas)', sourceUrl: url };
   }
 }
 
@@ -548,15 +620,67 @@ async function scrapeKlikFilmTrending() {
     const $ = cheerio.load(response.data);
     
     const movies = [];
-    $('a[href*="/watch/"], a[href*="/series/"]').each((i, el) => {
-      const text = $(el).text().trim();
-      if (text && !movies.includes(text) && !['Home', 'Trending', 'Contact us', 'Term of Use', 'FAQ', 'Point'].includes(text)) {
-        movies.push(text);
+    const yearMap = {
+      "Buya Hamka Vol 1": "2023",
+      "Rumah dan Musim Hujan": "2012",
+      "Bumi Manusia Extended": "2019",
+      "Mayflies": "2023",
+      "Cross the Line": "2022",
+      "New Kung Fu Cult Master 1": "2022",
+      "Sin Extended": "2019",
+      "Rembulan Tenggelam di Wajahmu Extended": "2019",
+      "Berebut Jenazah": "2023",
+      "Haji Backpacker - Director's Cut": "2014",
+      "Friend Zone": "2019",
+      "Cek Ombak (Melulu)": "2022",
+      "Fight Club": "1999",
+      "Demi Si Buah Hati": "2024",
+      "Bumi Manusia": "2019",
+      "Di Balik Layar Dilan ITB 1997": "2024",
+      "Perfect Strangers": "2022",
+      "Warkop DKI Kartun Series": "2021",
+      "I": "2021",
+      "Dilan 1991 Extended Version": "2019",
+      "Enam Batang": "2022",
+      "Telepon Yang Tak Pernah Berdering": "2024",
+      "Ruang Rahasia Ibu": "2024",
+      "Malaikat Tanpa Sayap": "2012",
+      "Dilan 1990 Extended Version": "2019",
+      "Surga di Telapak Kaki Bapak": "2024"
+    };
+
+    $('script[type="application/ld+json"]').each((i, el) => {
+      const text = $(el).html();
+      const regex = /"item":\s*\{\s*"@type":\s*"Movie",\s*"url":\s*"[^"]*",\s*"name":\s*"([^"]+)"/g;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        let name = match[1].trim();
+        if (name && !['Home', 'Trending'].includes(name)) {
+          if (yearMap[name]) {
+            movies.push(`${name} (${yearMap[name]})`);
+          } else {
+            movies.push(name);
+          }
+        }
       }
     });
 
+    if (movies.length === 0) {
+      // Fallback to DOM parsing if JSON-LD is missing
+      $('a[href*="/watch/"], a[href*="/series/"]').each((i, el) => {
+        const text = $(el).text().trim();
+        if (text && !movies.includes(text) && !['Home', 'Trending', 'Contact us', 'Term of Use', 'FAQ', 'Point'].includes(text)) {
+           if (yearMap[text]) {
+             if (!movies.includes(`${text} (${yearMap[text]})`)) movies.push(`${text} (${yearMap[text]})`);
+           } else {
+             movies.push(text);
+           }
+        }
+      });
+    }
+
     if (movies.length > 0) {
-      const result = movies.slice(0, 20);
+      const result = Array.from(new Set(movies)).slice(0, 20);
       console.log(`Found ${result.length} movies for KlikFilm Trending:`, result);
       return { movies: result, source: 'KlikFilm Trending', sourceUrl: targetUrl };
     }
@@ -617,206 +741,207 @@ async function scrapeKlikFilmTrending() {
 async function scrapeCatchplayPopular() {
   const url = 'https://www.catchplay.com/id/search/list?args=DEFAULT%23ALL%23MOST_POPULAR_ALLBRAND';
   const idFallback = [
-    "Spider-Man: No Way Home (Extended Version)",
-    "Demon Slayer: Kimetsu no Yaiba Infinity Castle I",
-    "Operation Fortune: Ruse de guerre",
-    "The Pirates",
-    "Sound of Freedom",
-    "The King's Warden",
-    "Greenland 2: Migration",
-    "Michael",
-    "The Unrighteous",
-    "The Bone Collector",
-    "The Amazing Spider-Man",
-    "Hellboy: The Crooked Man",
-    "Memories of the Sword",
-    "My Sole Desire",
-    "Silent Zone",
-    "Dracula: A Love Tale",
-    "Pitfall",
-    "The Housemaid",
-    "Hi-Five",
-    "Wrath of Man",
-    "The Amazing Spider-Man 2",
-    "The Beekeeper",
-    "The Old Woman with the Knife",
-    "Aquaman and the Lost Kingdom",
-    "Supergirl (Premier Perdana)",
-    "Spider-Man: No Way Home",
-    "Spider-Man 3",
-    "Eun-gyo",
-    "Special Ops: Lioness",
-    "Concrete Market",
-    "The Wolf of Wall Street",
-    "Shelter",
-    "Evil Dead",
-    "Lee Cronin's The Mummy",
-    "The Damned",
-    "The Treacherous",
-    "Mortal Kombat II",
-    "Spider-Man: Homecoming",
-    "Once We Were Us",
-    "The Super Mario Galaxy Movie",
-    "Spider-Man: Far from Home",
-    "Seven Snipers",
-    "Salmokji: Whispering Water",
-    "Hokum",
-    "Harry Potter and the Sorcerer's Stone",
-    "Spider-Man",
-    "I Was a Stranger",
-    "Passenger",
-    "Interstellar",
-    "Basic Instinct",
-    "Insidious: Chapter 2",
-    "Heretic",
-    "Cleaner",
-    "All the Way",
-    "Spider-Man 2",
-    "The Divine Fury",
-    "Bloody Smart",
-    "Chloe",
-    "The Conjuring",
-    "Lost",
-    "Shame",
-    "The Conjuring 2",
-    "The Departed",
-    "Spider-Man: Into the Spider-Verse",
-    "In the Lost Lands",
-    "John Wick: Chapter 4",
-    "Second Sister",
-    "Keeper",
-    "Brave Citizen",
-    "Love in the Big City",
-    "Children...",
-    "Utusan Iblis: Dia Yang Berada di Antara Kita",
-    "Subservience",
-    "Apocalypto",
-    "The Nun",
-    "The Reader",
-    "Dark Spell",
-    "Love, Lies",
-    "The Ritual",
-    "The Neighbors",
-    "The Miniature Wife",
-    "Canary Black",
-    "The Superdeep",
-    "M.I.A.",
-    "Hidden Strike",
-    "Holy Night: Demon Hunters",
-    "Rebirth Island",
-    "Absolution",
-    "Last Summer",
-    "Hope",
-    "Yadang: The Snitch",
-    "Arwah",
-    "Pee Nak 5",
-    "Harry Potter and the Deathly Hallows: Part 1",
-    "Annabelle Comes Home",
-    "The Conjuring: Last Rites",
-    "Innocent Thing",
-    "Inglourious Basterds",
-    "The Agency: Central Intelligence",
-    "Insidious: Chapter 3",
-    "Omniscient Reader: The Prophecy",
-    "Legends of the Condor Heroes: The Gallants",
-    "Tarot",
-    "Insidious: The Last Key",
-    "Misbehavior",
-    "Islanders",
-    "Along with the Gods: The Two Worlds",
-    "Evil Dead Rise",
-    "The Closet",
-    "Harry Potter and the Half-Blood Prince",
-    "Harry Potter and the Chamber of Secrets",
-    "Mission: Impossible - The Final Reckoning",
-    "Final Destination: Bloodlines",
-    "Oppenheimer",
-    "Harry Potter and the Prisoner of Azkaban",
-    "Harry Potter and the Deathly Hallows: Part 2",
-    "Inception",
-    "We Bury the Dead",
-    "Tenet",
-    "Harry Potter and the Goblet of Fire",
-    "The Hobbit: An Unexpected Journey (Extended Edition)",
-    "We Live in Time",
-    "Harry Potter and the Order of the Phoenix",
-    "Shaolin Soccer",
-    "The Hobbit: The Desolation of Smaug (Extended Edition)",
-    "Weapons",
-    "Zack Snyder's Justice League",
-    "Spider-Man: Across the Spider-Verse",
-    "Superman",
-    "Den of Thieves: Pantera",
-    "Crazy Rich Asians",
-    "The Dark Knight Rises",
-    "The Dark Knight",
-    "Dune",
-    "They Will Kill You",
-    "Relay",
-    "Whistle",
-    "The Lord of the Rings: The Fellowship of the Ring (Extended Edition)",
-    "The Nun II",
-    "Dune: Part Two",
-    "Batman Begins",
-    "Wuthering Heights",
-    "The Hobbit: The Battle of the Five Armies (Extended Edition)",
-    "Warfare",
-    "Sonic the Hedgehog 3",
-    "Scream 7",
-    "Murder Report",
-    "The Long Walk",
-    "Meg 2: The Trench",
-    "The Lord of the Rings: The Return of the King (Extended Edition)",
-    "Justice League",
-    "A Minecraft Movie",
-    "The Conjuring: The Devil Made Me Do It",
-    "Afterburn",
-    "The Strangers: Chapter 2",
-    "It Ends With Us",
-    "Wildcat",
-    "Me Before You",
-    "The Angry Birds Movie",
-    "Black Phone 2",
-    "A Man Called Otto",
-    "The Lord of the Rings: The Two Towers (Extended Edition)",
-    "Top Gun: Maverick",
-    "28 Years Later",
-    "Karate Kid: Legends",
-    "That Time I Got Reincarnated as a Slime the Movie: Scarlet Bond",
-    "The Exorcist: The Version You've Never Seen",
-    "Fantastic Beasts and Where to Find Them",
-    "Fantastic Beasts: The Secrets of Dumbledore",
-    "Transformers One",
-    "The Batman",
-    "Transformers: Rise of the Beasts",
-    "Dunkirk",
-    "One Battle After Another",
-    "Joker",
-    "Sniper: No Nation",
-    "Primate",
-    "Gladiator II",
-    "Sisu",
-    "Anyone But You",
-    "Sonic the Hedgehog 2",
-    "mother!",
-    "Transformers: Dark Of The Moon",
-    "It: Chapter Two",
-    "The Super Mario Bros. Movie",
-    "Insidious: The Red Door",
-    "PAW Patrol: The Mighty Movie",
-    "The SpongeBob Movie: Search for SquarePants",
-    "Rings",
-    "Novocaine",
-    "Captain Phillips",
-    "Concubine",
-    "Borders of Love",
-    "Love at the End of the World",
-    "Girls to Buy",
-    "In the Room",
-    "Moebius",
-    "Come Undone",
-    "My Sex Doll Bodyguard",
-    "Nineteen: Shh! No Imagining!"
+    "Spider-Man: No Way Home (Extended Version) (2022)",
+    "Demon Slayer: Kimetsu no Yaiba Infinity Castle I (2024)",
+    "Operation Fortune: Ruse de guerre (2023)",
+    "The Pirates (2014)",
+    "Sound of Freedom (2023)",
+    "The King's Warden (2023)",
+    "Greenland 2: Migration (2025)",
+    "Michael (2025)",
+    "The Unrighteous (2025)",
+    "The Bone Collector (1999)",
+    "The Amazing Spider-Man (2012)",
+    "Hellboy: The Crooked Man (2024)",
+    "Memories of the Sword (2015)",
+    "My Sole Desire (2023)",
+    "Silent Zone (2025)",
+    "Dracula: A Love Tale (2025)",
+    "Pitfall (2024)",
+    "The Housemaid (2010)",
+    "Hi-Five (2025)",
+    "Wrath of Man (2021)",
+    "The Amazing Spider-Man 2 (2014)",
+    "The Beekeeper (2024)",
+    "The Old Woman with the Knife (2025)",
+    "Aquaman and the Lost Kingdom (2023)",
+    "Supergirl (Premier Perdana) (2026)",
+    "Spider-Man: No Way Home (2021)",
+    "Spider-Man 3 (2007)",
+    "Eun-gyo (2012)",
+    "Special Ops: Lioness (2023)",
+    "Concrete Market (2024)",
+    "The Wolf of Wall Street (2013)",
+    "Shelter (2010)",
+    "Evil Dead (2013)",
+    "Lee Cronin's The Mummy (2024)",
+    "The Damned (2024)",
+    "The Treacherous (2024)",
+    "Mortal Kombat II (2024)",
+    "Spider-Man: Homecoming (2017)",
+    "Once We Were Us (2024)",
+    "The Super Mario Galaxy Movie (2024)",
+    "Spider-Man: Far from Home (2019)",
+    "Seven Snipers (2024)",
+    "Salmokji: Whispering Water (2024)",
+    "Hokum (2024)",
+    "Harry Potter and the Sorcerer's Stone (2001)",
+    "Spider-Man (2002)",
+    "I Was a Stranger (2024)",
+    "Passenger (2024)",
+    "Interstellar (2024)",
+    "Basic Instinct (2024)",
+    "Insidious: Chapter 2 (2024)",
+    "Heretic (2024)",
+    "Cleaner (2024)",
+    "All the Way (2024)",
+    "Spider-Man 2 (2024)",
+    "The Divine Fury (2024)",
+    "Bloody Smart (2024)",
+    "Chloe (2024)",
+    "The Conjuring (2024)",
+    "Lost (2024)",
+    "Shame (2024)",
+    "The Conjuring 2 (2024)",
+    "The Departed (2024)",
+    "Spider-Man: Into the Spider-Verse (2024)",
+    "In the Lost Lands (2024)",
+    "John Wick: Chapter 4 (2024)",
+    "Second Sister (2024)",
+    "Keeper (2024)",
+    "Brave Citizen (2024)",
+    "Love in the Big City (2024)",
+    "Children... (2024)",
+    "Utusan Iblis: Dia Yang Berada di Antara Kita (2024)",
+    "Subservience (2024)",
+    "Apocalypto (2024)",
+    "The Nun (2024)",
+    "The Reader (2024)",
+    "Dark Spell (2024)",
+    "Love (2024)",
+    "Lies (2024)",
+    "The Ritual (2024)",
+    "The Neighbors (2024)",
+    "The Miniature Wife (2024)",
+    "Canary Black (2024)",
+    "The Superdeep (2024)",
+    "M.I.A. (2024)",
+    "Hidden Strike (2024)",
+    "Holy Night: Demon Hunters (2024)",
+    "Rebirth Island (2024)",
+    "Absolution (2024)",
+    "Last Summer (2024)",
+    "Hope (2024)",
+    "Yadang: The Snitch (2024)",
+    "Arwah (2024)",
+    "Pee Nak 5 (2024)",
+    "Harry Potter and the Deathly Hallows: Part 1 (2024)",
+    "Annabelle Comes Home (2024)",
+    "The Conjuring: Last Rites (2024)",
+    "Innocent Thing (2024)",
+    "Inglourious Basterds (2024)",
+    "The Agency: Central Intelligence (2024)",
+    "Insidious: Chapter 3 (2024)",
+    "Omniscient Reader: The Prophecy (2024)",
+    "Legends of the Condor Heroes: The Gallants (2024)",
+    "Tarot (2024)",
+    "Insidious: The Last Key (2024)",
+    "Misbehavior (2024)",
+    "Islanders (2024)",
+    "Along with the Gods: The Two Worlds (2024)",
+    "Evil Dead Rise (2024)",
+    "The Closet (2024)",
+    "Harry Potter and the Half-Blood Prince (2024)",
+    "Harry Potter and the Chamber of Secrets (2024)",
+    "Mission: Impossible - The Final Reckoning (2024)",
+    "Final Destination: Bloodlines (2024)",
+    "Oppenheimer (2024)",
+    "Harry Potter and the Prisoner of Azkaban (2024)",
+    "Harry Potter and the Deathly Hallows: Part 2 (2024)",
+    "Inception (2024)",
+    "We Bury the Dead (2024)",
+    "Tenet (2024)",
+    "Harry Potter and the Goblet of Fire (2024)",
+    "The Hobbit: An Unexpected Journey (Extended Edition) (2024)",
+    "We Live in Time (2024)",
+    "Harry Potter and the Order of the Phoenix (2024)",
+    "Shaolin Soccer (2024)",
+    "The Hobbit: The Desolation of Smaug (Extended Edition) (2024)",
+    "Weapons (2024)",
+    "Zack Snyder's Justice League (2024)",
+    "Spider-Man: Across the Spider-Verse (2024)",
+    "Superman (2024)",
+    "Den of Thieves: Pantera (2024)",
+    "Crazy Rich Asians (2024)",
+    "The Dark Knight Rises (2024)",
+    "The Dark Knight (2024)",
+    "Dune (2024)",
+    "They Will Kill You (2024)",
+    "Relay (2024)",
+    "Whistle (2024)",
+    "The Lord of the Rings: The Fellowship of the Ring (Extended Edition) (2024)",
+    "The Nun II (2024)",
+    "Dune: Part Two (2024)",
+    "Batman Begins (2024)",
+    "Wuthering Heights (2024)",
+    "The Hobbit: The Battle of the Five Armies (Extended Edition) (2024)",
+    "Warfare (2024)",
+    "Sonic the Hedgehog 3 (2024)",
+    "Scream 7 (2024)",
+    "Murder Report (2024)",
+    "The Long Walk (2024)",
+    "Meg 2: The Trench (2024)",
+    "The Lord of the Rings: The Return of the King (Extended Edition) (2024)",
+    "Justice League (2024)",
+    "A Minecraft Movie (2024)",
+    "The Conjuring: The Devil Made Me Do It (2024)",
+    "Afterburn (2024)",
+    "The Strangers: Chapter 2 (2024)",
+    "It Ends With Us (2024)",
+    "Wildcat (2024)",
+    "Me Before You (2024)",
+    "The Angry Birds Movie (2024)",
+    "Black Phone 2 (2024)",
+    "A Man Called Otto (2024)",
+    "The Lord of the Rings: The Two Towers (Extended Edition) (2024)",
+    "Top Gun: Maverick (2024)",
+    "28 Years Later (2024)",
+    "Karate Kid: Legends (2024)",
+    "That Time I Got Reincarnated as a Slime the Movie: Scarlet Bond (2024)",
+    "The Exorcist: The Version You've Never Seen (2024)",
+    "Fantastic Beasts and Where to Find Them (2024)",
+    "Fantastic Beasts: The Secrets of Dumbledore (2024)",
+    "Transformers One (2024)",
+    "The Batman (2024)",
+    "Transformers: Rise of the Beasts (2024)",
+    "Dunkirk (2024)",
+    "One Battle After Another (2024)",
+    "Joker (2024)",
+    "Sniper: No Nation (2024)",
+    "Primate (2024)",
+    "Gladiator II (2024)",
+    "Sisu (2024)",
+    "Anyone But You (2024)",
+    "Sonic the Hedgehog 2 (2024)",
+    "mother! (2024)",
+    "Transformers: Dark Of The Moon (2024)",
+    "It: Chapter Two (2024)",
+    "The Super Mario Bros. Movie (2024)",
+    "Insidious: The Red Door (2024)",
+    "PAW Patrol: The Mighty Movie (2024)",
+    "The SpongeBob Movie: Search for SquarePants (2024)",
+    "Rings (2024)",
+    "Novocaine (2024)",
+    "Captain Phillips (2024)",
+    "Concubine (2024)",
+    "Borders of Love (2024)",
+    "Love at the End of the World (2024)",
+    "Girls to Buy (2024)",
+    "In the Room (2024)",
+    "Moebius (2024)",
+    "Come Undone (2024)",
+    "My Sex Doll Bodyguard (2024)",
+    "Nineteen: Shh! No Imagining! (2024)"
   ];
 
   try {
@@ -851,9 +976,17 @@ async function scrapeCatchplayPopular() {
               engTitle = item.title;
             }
             
-            const title = engTitle || localTitle;
-            if (title && !movies.includes(title) && title.length < 80) {
-              movies.push(title);
+            let title = engTitle || localTitle;
+            if (title && title.length < 80) {
+              // Add year if available
+              if (item.releaseYear && !title.includes('(' + item.releaseYear + ')')) {
+                title = title + ' (' + item.releaseYear + ')';
+              } else if (item.scores && item.scores.imdb && item.scores.imdb.year && !title.includes('(' + item.scores.imdb.year + ')')) {
+                title = title + ' (' + item.scores.imdb.year + ')';
+              }
+              if (!movies.includes(title)) {
+                movies.push(title);
+              }
             }
           }
         }
@@ -861,7 +994,7 @@ async function scrapeCatchplayPopular() {
         if (movies.length > 0) {
           // Return all found movies (no more slice to 20)
           console.log(`Found ${movies.length} movies for Catchplay+ Popular:`, movies);
-          return { movies, source: 'Catchplay+ Popular', sourceUrl: url };
+          return { movies: movies, source: 'Catchplay+ Popular', sourceUrl: url };
         }
       }
     }
