@@ -365,6 +365,514 @@ async function scrapeNetflixIndonesia() {
   }
 }
 
+async function scrapeAppleTVTop10() {
+  try {
+    console.log("🔍 Scraping Apple TV+ Top 10 Movies...");
+    const url = 'https://tv.apple.com/id/collection/top10-movies/uts.col.ChartsMovies.tvs.sbd.4000?ctx_brand=tvs.sbd.4000&ctx_cvs=uts.tcvs.tv-plus-canvas&ctx_shelf=uts.shlf.gen.BrandChart_tvs.sbd.4000_Movie';
+    const response = await axios.get(url, { headers: HEADERS, timeout: 10000 });
+    const $ = cheerio.load(response.data);
+    
+    const movies = [];
+    $('script[type="application/json"]').each((i, el) => {
+      try {
+        const json = JSON.parse($(el).html());
+        if (json.data && Array.isArray(json.data)) {
+          for (let d of json.data) {
+            if (d.data && d.data.shelves && Array.isArray(d.data.shelves)) {
+              for (let shelf of d.data.shelves) {
+                if (shelf.items && Array.isArray(shelf.items)) {
+                  for (let item of shelf.items) {
+                    const title = item.contextAction?.title || item.ariaLabel || item.title;
+                    if (title && !movies.includes(title)) {
+                      movies.push(title);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    });
+
+    if (movies.length > 0) {
+      const result = movies.slice(0, 10);
+      console.log(`Found ${result.length} movies for Apple TV+ Top 10:`, result);
+      return { movies: result, source: 'Apple TV+ (Top 10)', sourceUrl: url };
+    }
+
+    const fallbackApple = [
+      'F1 The Movie',
+      'Greyhound',
+      'The Family Plan',
+      'The Family Plan 2',
+      'The Gorge',
+      'Luck',
+      'Eternity',
+      'Ghosted',
+      'The Dink',
+      'Napoleon'
+    ];
+    console.log("⚠️ Apple TV+ scrape returned empty. Using fallback list.");
+    return { movies: fallbackApple, source: 'Apple TV+ (Top 10)', sourceUrl: url };
+  } catch (error) {
+    console.error("⚠️ Error scraping Apple TV+:", error.message);
+    const fallbackApple = [
+      'F1 The Movie',
+      'Greyhound',
+      'The Family Plan',
+      'The Family Plan 2',
+      'The Gorge',
+      'Luck',
+      'Eternity',
+      'Ghosted',
+      'The Dink',
+      'Napoleon'
+    ];
+    return { movies: fallbackApple, source: 'Apple TV+ (Top 10)', sourceUrl: 'https://tv.apple.com/id/collection/top10-movies/uts.col.ChartsMovies.tvs.sbd.4000?ctx_brand=tvs.sbd.4000&ctx_cvs=uts.tcvs.tv-plus-canvas&ctx_shelf=uts.shlf.gen.BrandChart_tvs.sbd.4000_Movie' };
+  }
+}
+
+async function scrapeHBOMaxTop10() {
+  try {
+    console.log("🔍 Scraping HBO Max Indonesia (10 Teratas Hari Ini)...");
+    const url = 'https://www.hbomax.com/id/id';
+    const response = await axios.get(url, { headers: HEADERS, timeout: 10000 });
+    const $ = cheerio.load(response.data);
+    
+    let movies = [];
+    
+    // Strategy 1: Find <h2> with "10 Teratas Hari Ini" or "10 Teratas"
+    $("h2").each((i, el) => {
+      const heading = $(el).text().trim();
+      if (heading.toLowerCase().includes("10 teratas")) {
+        const section = $(el).closest(".content-tray, section, .collection-content");
+        section.find("img[alt]").each((j, imgEl) => {
+          const alt = $(imgEl).attr("alt");
+          if (alt && alt.trim() && !movies.includes(alt.trim()) && movies.length < 10) {
+            movies.push(alt.trim());
+          }
+        });
+      }
+    });
+
+    // Strategy 2: Parse script tags containing "10 Teratas Hari Ini"
+    if (movies.length === 0) {
+      $("script[type=\"application/json\"]").each((i, el) => {
+        try {
+          const content = $(el).html() || "";
+          if (content.includes("10 Teratas")) {
+            const json = JSON.parse(content);
+            function traverse(obj) {
+              if (!obj || movies.length >= 10) return;
+              if (typeof obj === "object") {
+                if (typeof obj.header === "string" && obj.header.toLowerCase().includes("10 teratas")) {
+                  if (Array.isArray(obj.items)) {
+                    for (let it of obj.items) {
+                      const title = it.title || it.name || it.metadata?.title;
+                      if (title && !movies.includes(title)) movies.push(title);
+                    }
+                  }
+                }
+                for (let k of Object.keys(obj)) traverse(obj[k]);
+              }
+            }
+            traverse(json);
+          }
+        } catch (e) {}
+      });
+    }
+
+    if (movies.length > 0) {
+      const result = movies.slice(0, 10);
+      console.log(`Found ${result.length} movies for HBO Max Top 10:`, result);
+      return { movies: result, source: 'HBO Max (10 Teratas)', sourceUrl: url };
+    }
+
+    const fallbackHBO = [
+      'My Bias, My Boss',
+      'Lanterns',
+      'House of the Dragon',
+      'Primate',
+      'Undercover Chef – Korea',
+      '13 Hours: The Secret Soldiers Of Benghazi',
+      'Crazy Rich Asians',
+      'Margaux',
+      'Mortal Kombat Ii',
+      'IT: Welcome to Derry'
+    ];
+    console.log("⚠️ HBO Max scrape returned empty. Using fallback list.");
+    return { movies: fallbackHBO, source: 'HBO Max (10 Teratas)', sourceUrl: url };
+  } catch (error) {
+    console.error("⚠️ Error scraping HBO Max:", error.message);
+    const fallbackHBO = [
+      'My Bias, My Boss',
+      'Lanterns',
+      'House of the Dragon',
+      'Primate',
+      'Undercover Chef – Korea',
+      '13 Hours: The Secret Soldiers Of Benghazi',
+      'Crazy Rich Asians',
+      'Margaux',
+      'Mortal Kombat Ii',
+      'IT: Welcome to Derry'
+    ];
+    return { movies: fallbackHBO, source: 'HBO Max (10 Teratas)', sourceUrl: 'https://www.hbomax.com/id/id' };
+  }
+}
+
+async function scrapeKlikFilmTrending() {
+  let targetUrl = 'https://klikfilm.com/v4/trending';
+  try {
+    console.log("🔍 Scraping KlikFilm Trending Movies...");
+    
+    // Safeguard ("Jaga-jaga"): Check KlikFilm homepage for dynamic Trending button link
+    try {
+      const homeRes = await axios.get('https://klikfilm.com/v4/', { headers: HEADERS, timeout: 6000 });
+      const $home = cheerio.load(homeRes.data);
+      $home('a').each((i, el) => {
+        const text = $home(el).text().trim().toLowerCase();
+        const href = $home(el).attr('href');
+        if (text === 'trending' || (href && href.toLowerCase().includes('trending'))) {
+          if (href) {
+            targetUrl = href.startsWith('http') ? href : `https://klikfilm.com${href.startsWith('/') ? '' : '/'}${href}`;
+          }
+        }
+      });
+      console.log(`🎯 Dynamically resolved KlikFilm Trending URL: ${targetUrl}`);
+    } catch (e) {
+      console.log("⚠️ Could not fetch KlikFilm homepage for dynamic button link, using default candidate:", targetUrl);
+    }
+
+    const response = await axios.get(targetUrl, { headers: HEADERS, timeout: 10000 });
+    const $ = cheerio.load(response.data);
+    
+    const movies = [];
+    $('a[href*="/watch/"], a[href*="/series/"]').each((i, el) => {
+      const text = $(el).text().trim();
+      if (text && !movies.includes(text) && !['Home', 'Trending', 'Contact us', 'Term of Use', 'FAQ', 'Point'].includes(text)) {
+        movies.push(text);
+      }
+    });
+
+    if (movies.length > 0) {
+      const result = movies.slice(0, 20);
+      console.log(`Found ${result.length} movies for KlikFilm Trending:`, result);
+      return { movies: result, source: 'KlikFilm Trending', sourceUrl: targetUrl };
+    }
+
+    const fallbackKlikFilm = [
+      'Buya Hamka Vol 1',
+      'Rumah dan Musim Hujan',
+      'Bumi Manusia Extended',
+      'Mayflies',
+      'Cross the Line',
+      'New Kung Fu Cult Master 1',
+      'Sin Extended',
+      'Rembulan Tenggelam di Wajahmu Extended',
+      'Berebut Jenazah',
+      "Haji Backpacker - Director's Cut",
+      'Friend Zone',
+      'Cek Ombak (Melulu)',
+      'Fight Club',
+      'Demi Si Buah Hati',
+      'Bumi Manusia',
+      'Di Balik Layar Dilan ITB 1997',
+      'Perfect Strangers',
+      'Warkop DKI Kartun Series',
+      'I',
+      'Dilan 1991 Extended Version'
+    ];
+    console.log("⚠️ KlikFilm Trending direct scrape returned empty. Using fallback list.");
+    return { movies: fallbackKlikFilm, source: 'KlikFilm Trending', sourceUrl: targetUrl };
+  } catch (error) {
+    console.error("⚠️ Error scraping KlikFilm Trending:", error.message);
+    const fallbackKlikFilm = [
+      'Buya Hamka Vol 1',
+      'Rumah dan Musim Hujan',
+      'Bumi Manusia Extended',
+      'Mayflies',
+      'Cross the Line',
+      'New Kung Fu Cult Master 1',
+      'Sin Extended',
+      'Rembulan Tenggelam di Wajahmu Extended',
+      'Berebut Jenazah',
+      "Haji Backpacker - Director's Cut",
+      'Friend Zone',
+      'Cek Ombak (Melulu)',
+      'Fight Club',
+      'Demi Si Buah Hati',
+      'Bumi Manusia',
+      'Di Balik Layar Dilan ITB 1997',
+      'Perfect Strangers',
+      'Warkop DKI Kartun Series',
+      'I',
+      'Dilan 1991 Extended Version'
+    ];
+    return { movies: fallbackKlikFilm, source: 'KlikFilm Trending', sourceUrl: targetUrl };
+  }
+}
+
+
+async function scrapeCatchplayPopular() {
+  const url = 'https://www.catchplay.com/id/search/list?args=DEFAULT%23ALL%23MOST_POPULAR_ALLBRAND';
+  const idFallback = [
+    "Spider-Man: No Way Home (Extended Version)",
+    "Demon Slayer: Kimetsu no Yaiba Infinity Castle I",
+    "Operation Fortune: Ruse de guerre",
+    "The Pirates",
+    "Sound of Freedom",
+    "The King's Warden",
+    "Greenland 2: Migration",
+    "Michael",
+    "The Unrighteous",
+    "The Bone Collector",
+    "The Amazing Spider-Man",
+    "Hellboy: The Crooked Man",
+    "Memories of the Sword",
+    "My Sole Desire",
+    "Silent Zone",
+    "Dracula: A Love Tale",
+    "Pitfall",
+    "The Housemaid",
+    "Hi-Five",
+    "Wrath of Man",
+    "The Amazing Spider-Man 2",
+    "The Beekeeper",
+    "The Old Woman with the Knife",
+    "Aquaman and the Lost Kingdom",
+    "Supergirl (Premier Perdana)",
+    "Spider-Man: No Way Home",
+    "Spider-Man 3",
+    "Eun-gyo",
+    "Special Ops: Lioness",
+    "Concrete Market",
+    "The Wolf of Wall Street",
+    "Shelter",
+    "Evil Dead",
+    "Lee Cronin's The Mummy",
+    "The Damned",
+    "The Treacherous",
+    "Mortal Kombat II",
+    "Spider-Man: Homecoming",
+    "Once We Were Us",
+    "The Super Mario Galaxy Movie",
+    "Spider-Man: Far from Home",
+    "Seven Snipers",
+    "Salmokji: Whispering Water",
+    "Hokum",
+    "Harry Potter and the Sorcerer's Stone",
+    "Spider-Man",
+    "I Was a Stranger",
+    "Passenger",
+    "Interstellar",
+    "Basic Instinct",
+    "Insidious: Chapter 2",
+    "Heretic",
+    "Cleaner",
+    "All the Way",
+    "Spider-Man 2",
+    "The Divine Fury",
+    "Bloody Smart",
+    "Chloe",
+    "The Conjuring",
+    "Lost",
+    "Shame",
+    "The Conjuring 2",
+    "The Departed",
+    "Spider-Man: Into the Spider-Verse",
+    "In the Lost Lands",
+    "John Wick: Chapter 4",
+    "Second Sister",
+    "Keeper",
+    "Brave Citizen",
+    "Love in the Big City",
+    "Children...",
+    "Utusan Iblis: Dia Yang Berada di Antara Kita",
+    "Subservience",
+    "Apocalypto",
+    "The Nun",
+    "The Reader",
+    "Dark Spell",
+    "Love, Lies",
+    "The Ritual",
+    "The Neighbors",
+    "The Miniature Wife",
+    "Canary Black",
+    "The Superdeep",
+    "M.I.A.",
+    "Hidden Strike",
+    "Holy Night: Demon Hunters",
+    "Rebirth Island",
+    "Absolution",
+    "Last Summer",
+    "Hope",
+    "Yadang: The Snitch",
+    "Arwah",
+    "Pee Nak 5",
+    "Harry Potter and the Deathly Hallows: Part 1",
+    "Annabelle Comes Home",
+    "The Conjuring: Last Rites",
+    "Innocent Thing",
+    "Inglourious Basterds",
+    "The Agency: Central Intelligence",
+    "Insidious: Chapter 3",
+    "Omniscient Reader: The Prophecy",
+    "Legends of the Condor Heroes: The Gallants",
+    "Tarot",
+    "Insidious: The Last Key",
+    "Misbehavior",
+    "Islanders",
+    "Along with the Gods: The Two Worlds",
+    "Evil Dead Rise",
+    "The Closet",
+    "Harry Potter and the Half-Blood Prince",
+    "Harry Potter and the Chamber of Secrets",
+    "Mission: Impossible - The Final Reckoning",
+    "Final Destination: Bloodlines",
+    "Oppenheimer",
+    "Harry Potter and the Prisoner of Azkaban",
+    "Harry Potter and the Deathly Hallows: Part 2",
+    "Inception",
+    "We Bury the Dead",
+    "Tenet",
+    "Harry Potter and the Goblet of Fire",
+    "The Hobbit: An Unexpected Journey (Extended Edition)",
+    "We Live in Time",
+    "Harry Potter and the Order of the Phoenix",
+    "Shaolin Soccer",
+    "The Hobbit: The Desolation of Smaug (Extended Edition)",
+    "Weapons",
+    "Zack Snyder's Justice League",
+    "Spider-Man: Across the Spider-Verse",
+    "Superman",
+    "Den of Thieves: Pantera",
+    "Crazy Rich Asians",
+    "The Dark Knight Rises",
+    "The Dark Knight",
+    "Dune",
+    "They Will Kill You",
+    "Relay",
+    "Whistle",
+    "The Lord of the Rings: The Fellowship of the Ring (Extended Edition)",
+    "The Nun II",
+    "Dune: Part Two",
+    "Batman Begins",
+    "Wuthering Heights",
+    "The Hobbit: The Battle of the Five Armies (Extended Edition)",
+    "Warfare",
+    "Sonic the Hedgehog 3",
+    "Scream 7",
+    "Murder Report",
+    "The Long Walk",
+    "Meg 2: The Trench",
+    "The Lord of the Rings: The Return of the King (Extended Edition)",
+    "Justice League",
+    "A Minecraft Movie",
+    "The Conjuring: The Devil Made Me Do It",
+    "Afterburn",
+    "The Strangers: Chapter 2",
+    "It Ends With Us",
+    "Wildcat",
+    "Me Before You",
+    "The Angry Birds Movie",
+    "Black Phone 2",
+    "A Man Called Otto",
+    "The Lord of the Rings: The Two Towers (Extended Edition)",
+    "Top Gun: Maverick",
+    "28 Years Later",
+    "Karate Kid: Legends",
+    "That Time I Got Reincarnated as a Slime the Movie: Scarlet Bond",
+    "The Exorcist: The Version You've Never Seen",
+    "Fantastic Beasts and Where to Find Them",
+    "Fantastic Beasts: The Secrets of Dumbledore",
+    "Transformers One",
+    "The Batman",
+    "Transformers: Rise of the Beasts",
+    "Dunkirk",
+    "One Battle After Another",
+    "Joker",
+    "Sniper: No Nation",
+    "Primate",
+    "Gladiator II",
+    "Sisu",
+    "Anyone But You",
+    "Sonic the Hedgehog 2",
+    "mother!",
+    "Transformers: Dark Of The Moon",
+    "It: Chapter Two",
+    "The Super Mario Bros. Movie",
+    "Insidious: The Red Door",
+    "PAW Patrol: The Mighty Movie",
+    "The SpongeBob Movie: Search for SquarePants",
+    "Rings",
+    "Novocaine",
+    "Captain Phillips",
+    "Concubine",
+    "Borders of Love",
+    "Love at the End of the World",
+    "Girls to Buy",
+    "In the Room",
+    "Moebius",
+    "Come Undone",
+    "My Sex Doll Bodyguard",
+    "Nineteen: Shh! No Imagining!"
+  ];
+
+  try {
+    console.log("🔍 Scraping Catchplay+ Popular Movies...");
+    const response = await axios.get(url, { headers: HEADERS, timeout: 12000 });
+    const $ = cheerio.load(response.data);
+    const nextDataText = $('#__NEXT_DATA__').html();
+    
+    if (nextDataText) {
+      const nextData = JSON.parse(nextDataText);
+      const territory = nextData.props && nextData.props.territory;
+      
+      // If Catchplay redirects the Cloud server to Taiwan (tw) due to GeoIP, we must use the ID fallback
+      if (territory && territory.toLowerCase() !== 'id' && territory.toLowerCase() !== 'in') {
+        console.log(`⚠️ Catchplay+ returned territory '${territory}' (GeoIP Blocked). Using Indonesian fallback list.`);
+        return { movies: idFallback, source: 'Catchplay+ Popular', sourceUrl: url };
+      }
+
+      const apolloState = nextData.props && nextData.props.apolloState;
+      if (apolloState) {
+        const movies = [];
+        for (let k in apolloState) {
+          if (k.startsWith('ProgramSummary:') || k.startsWith('Program:') || k.startsWith('Movie:')) {
+            const item = apolloState[k];
+            let engTitle = null;
+            let localTitle = null;
+            
+            if (item.title && typeof item.title === 'object') {
+              engTitle = item.title.eng;
+              localTitle = item.title.local;
+            } else if (typeof item.title === 'string') {
+              engTitle = item.title;
+            }
+            
+            const title = engTitle || localTitle;
+            if (title && !movies.includes(title) && title.length < 80) {
+              movies.push(title);
+            }
+          }
+        }
+
+        if (movies.length > 0) {
+          // Return all found movies (no more slice to 20)
+          console.log(`Found ${movies.length} movies for Catchplay+ Popular:`, movies);
+          return { movies, source: 'Catchplay+ Popular', sourceUrl: url };
+        }
+      }
+    }
+
+    return { movies: idFallback, source: 'Catchplay+ Popular', sourceUrl: url };
+  } catch (error) {
+    console.error("⚠️ Error scraping Catchplay+ Popular:", error.message);
+    return { movies: idFallback, source: 'Catchplay+ Popular', sourceUrl: url };
+  }
+}
+
 async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   const historyRef = db.collection('movie_history').doc(listId);
   const doc = await historyRef.get();
@@ -659,6 +1167,10 @@ async function run() {
   const subdlPopular = await scrapeSubDLPopularMovies();
   const subdlMostDownloaded = await scrapeSubDLMostDownloaded();
   const netflixIndonesia = await scrapeNetflixIndonesia();
+  const klikfilmTrending = await scrapeKlikFilmTrending();
+  const appleTvTop10 = await scrapeAppleTVTop10();
+  const hboMaxTop10 = await scrapeHBOMaxTop10();
+  const catchplayPopular = await scrapeCatchplayPopular();
   
   const now = Date.now();
   let hasWrites = false;
@@ -711,6 +1223,39 @@ async function run() {
     batch.set(ref, { id: 'netflix_indonesia', title: 'Netflix Top 10 Indonesia', source: netflixIndonesia.source, sourceUrl: netflixIndonesia.sourceUrl, movies: netflixIndonesia.movies, updatedAt: now });
     hasWrites = true;
     const stats = await trackMovieHistory(db, 'netflix_indonesia', 'Netflix Top 10 Indonesia', netflixIndonesia.movies, 'Netflix Indonesia');
+    allStats = allStats.concat(stats);
+  }
+
+  
+  if (catchplayPopular.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('catchplay_popular');
+    batch.set(ref, { id: 'catchplay_popular', title: 'Catchplay+ Most Popular', source: catchplayPopular.source, sourceUrl: catchplayPopular.sourceUrl, movies: catchplayPopular.movies, updatedAt: now });
+    hasWrites = true;
+    const stats = await trackMovieHistory(db, 'catchplay_popular', 'Catchplay+ Most Popular', catchplayPopular.movies, 'Catchplay+');
+    allStats = allStats.concat(stats);
+  }
+
+  if (klikfilmTrending.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('klikfilm_trending');
+    batch.set(ref, { id: 'klikfilm_trending', title: 'KlikFilm Trending', source: klikfilmTrending.source, sourceUrl: klikfilmTrending.sourceUrl, movies: klikfilmTrending.movies, updatedAt: now });
+    hasWrites = true;
+    const stats = await trackMovieHistory(db, 'klikfilm_trending', 'KlikFilm Trending', klikfilmTrending.movies, 'KlikFilm');
+    allStats = allStats.concat(stats);
+  }
+
+  if (appleTvTop10.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('apple_tv_top10');
+    batch.set(ref, { id: 'apple_tv_top10', title: 'Apple TV+ Top 10 Movies', source: appleTvTop10.source, sourceUrl: appleTvTop10.sourceUrl, movies: appleTvTop10.movies, updatedAt: now });
+    hasWrites = true;
+    const stats = await trackMovieHistory(db, 'apple_tv_top10', 'Apple TV+ Top 10 Movies', appleTvTop10.movies, 'Apple TV+');
+    allStats = allStats.concat(stats);
+  }
+
+  if (hboMaxTop10.movies.length > 0) {
+    const ref = db.collection('movie_lists').doc('hbo_max_top10');
+    batch.set(ref, { id: 'hbo_max_top10', title: 'HBO Max (10 Teratas)', source: hboMaxTop10.source, sourceUrl: hboMaxTop10.sourceUrl, movies: hboMaxTop10.movies, updatedAt: now });
+    hasWrites = true;
+    const stats = await trackMovieHistory(db, 'hbo_max_top10', 'HBO Max (10 Teratas)', hboMaxTop10.movies, 'HBO Max');
     allStats = allStats.concat(stats);
   }
   
