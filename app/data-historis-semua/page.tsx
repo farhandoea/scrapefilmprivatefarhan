@@ -153,7 +153,7 @@ function HistoryContent() {
             Database Historis & Ketahanan Tren
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
-            /Data Historis Semua/
+            Data Historis Semua
           </h1>
           <p className="text-neutral-600 text-sm sm:text-base mt-2 max-w-3xl">
             Arsip lengkap riwayat seluruh film yang pernah masuk dan bertahan di tangga popularitas 10 platform, lengkap dengan rekor umur hari dan tanggal aktifnya.

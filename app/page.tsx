@@ -43,7 +43,7 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">Rute Live Data</span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 mt-1 mb-3">
-                  /Now/
+                  Now
                 </h2>
                 <p className="text-neutral-600 text-sm leading-relaxed mb-6">
                   Menampilkan jajaran film peringkat 1-10 yang sedang aktif dan trending hari ini di masing-masing dari 10 platform.
@@ -54,7 +54,7 @@ export default function Home() {
                 href="/now"
                 className="inline-flex items-center justify-between w-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-sm px-5 py-3.5 rounded-2xl transition-all shadow-xs"
               >
-                <span>Buka /Now/ (Tren Terkini)</span>
+                <span>Buka Now (Tren Terkini)</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </motion.div>
@@ -72,7 +72,7 @@ export default function Home() {
                 </div>
                 <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Rute Arsip & Analitik</span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 mt-1 mb-3">
-                  /DATAHISTORISSEMUA/
+                  Data Historis Semua
                 </h2>
                 <p className="text-neutral-600 text-sm leading-relaxed mb-6">
                   Melihat seluruh riwayat film, durasi ketahanan (Umur Hari), tanggal pertama/terakhir muncul, dan status keluar dari daftar.
@@ -83,7 +83,7 @@ export default function Home() {
                 href="/data-historis-semua"
                 className="inline-flex items-center justify-between w-full bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-sm px-5 py-3.5 rounded-2xl transition-all shadow-xs"
               >
-                <span>Buka /Data Historis Semua/</span>
+                <span>Buka Data Historis Semua</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </motion.div>
@@ -128,7 +128,7 @@ export default function Home() {
                       href={`/now?category=${id}`}
                       className="font-semibold text-orange-600 hover:text-orange-700 flex items-center justify-between"
                     >
-                      <span>Lihat Live /Now/</span>
+                      <span>Lihat Live Now</span>
                       <ArrowRight className="w-3 h-3" />
                     </Link>
                     <Link
@@ -196,8 +196,8 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-6">
-            <Link href="/now" className="hover:text-neutral-900 font-medium">/Now/</Link>
-            <Link href="/data-historis-semua" className="hover:text-neutral-900 font-medium">/DATAHISTORISSEMUA/</Link>
+            <Link href="/now" className="hover:text-neutral-900 font-medium">Now</Link>
+            <Link href="/data-historis-semua" className="hover:text-neutral-900 font-medium">Data Historis Semua</Link>
             <a
               href="https://docs.google.com/spreadsheets/d/17Of4jJGjERjjSIBNT9kk3K6XrRQDULnwIDBNfOjmpMk/edit"
               target="_blank"

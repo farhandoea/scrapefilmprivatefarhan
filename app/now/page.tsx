@@ -84,7 +84,7 @@ function NowContent() {
               Status: Live Scrape Terkini
             </div>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
-              /Now/ — Tren Film Terkini
+              Now — Tren Film Terkini
             </h1>
             <p className="text-neutral-600 text-sm sm:text-base mt-2 max-w-2xl">
               Memantau daftar film dan serial yang sedang menduduki peringkat teratas di 10 platform populer saat ini.

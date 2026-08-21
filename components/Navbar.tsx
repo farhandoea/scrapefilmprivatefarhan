@@ -92,7 +92,7 @@ export default function Navbar() {
               }`}
             >
               <Flame className="w-3.5 h-3.5 text-orange-500" />
-              /Now/ (Tren Terkini)
+              Now (Tren Terkini)
             </Link>
             <Link
               href="/data-historis-semua"
@@ -103,7 +103,7 @@ export default function Navbar() {
               }`}
             >
               <History className="w-3.5 h-3.5 text-blue-500" />
-              /Data Historis Semua/
+              Data Historis Semua
             </Link>
           </nav>
         </div>
@@ -164,13 +164,13 @@ export default function Navbar() {
           href="/now"
           className={`flex-1 text-center py-1.5 rounded-md font-semibold ${isNowActive ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-600'}`}
         >
-          /Now/
+          Now
         </Link>
         <Link
           href="/data-historis-semua"
           className={`flex-1 text-center py-1.5 rounded-md font-semibold ${isHistoryActive ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-600'}`}
         >
-          /Data Historis/
+          Data Historis
         </Link>
       </div>
 
