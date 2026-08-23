@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
-  transpilePackages: ['motion'],
+  transpilePackages: [],
   async rewrites() {
     return [
       {
