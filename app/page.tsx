@@ -159,7 +159,7 @@ export default function Home() {
               </div>
               <h4 className="font-bold text-neutral-900 mb-1.5">Otomatisasi Scraper</h4>
               <p className="text-xs sm:text-sm leading-relaxed">
-                GitHub Actions menjalankan bot pemindai setiap 2 jam untuk mengekstrak data Top 10 film langsung dari situs resmi Catchplay+, KlikFilm, Netflix, HBO Max, Apple TV+, IMDb, XXI, SubDL, dan SubSource.
+                GitHub Actions menjalankan bot pemindai setiap 2 jam untuk mengekstrak data Top 10 film langsung dari situs resmi KlikFilm, Netflix, HBO Max, Apple TV+, IMDb, XXI, SubDL, dan SubSource.
               </p>
             </div>
 

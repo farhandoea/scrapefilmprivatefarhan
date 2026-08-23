@@ -25,7 +25,6 @@ export const LIST_ORDER = [
   'in_theaters',
   'netflix_indonesia',
   'klikfilm_trending',
-  'catchplay_popular',
   'hbo_max_top10',
   'apple_tv_top10',
   'subsource_popular',
@@ -62,13 +61,7 @@ export const SOURCE_INFO: Record<string, { label: string; shortLabel: string; ur
     badgeColor: 'bg-orange-100 text-orange-800 border-orange-300',
     description: 'Daftar film trending di platform KlikFilm'
   },
-  catchplay_popular: {
-    label: 'Catchplay+ Most Popular',
-    shortLabel: 'Catchplay+',
-    url: 'https://www.catchplay.com/id/search/list?args=DEFAULT%23ALL%23MOST_POPULAR_ALLBRAND',
-    badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-300',
-    description: 'Film paling populer di Catchplay+ Indonesia'
-  },
+  
   hbo_max_top10: {
     label: 'HBO Max (10 Teratas)',
     shortLabel: 'HBO Max',
@@ -265,23 +258,4 @@ export const DEFAULT_LISTS: Record<string, MovieList> = {
     ],
     updatedAt: 1771706900000
   },
-  catchplay_popular: {
-    id: 'catchplay_popular',
-    title: 'Catchplay+ Most Popular',
-    source: 'Catchplay+ Popular',
-    sourceUrl: 'https://www.catchplay.com/id/search/list?args=DEFAULT%23ALL%23MOST_POPULAR_ALLBRAND',
-    movies: [
-      'Spider-Man: No Way Home (Extended Version)',
-      'Demon Slayer: Kimetsu no Yaiba Infinity Castle I',
-      'Operation Fortune: Ruse de guerre',
-      'The Pirates',
-      'Sound of Freedom',
-      "The King's Warden",
-      'Greenland 2: Migration',
-      'Michael',
-      'The Unrighteous',
-      'The Bone Collector'
-    ],
-    updatedAt: 1771706900000
-  }
-};
+  };

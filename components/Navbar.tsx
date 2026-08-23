@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -49,7 +48,7 @@ export default function Navbar() {
   };
 
   const isNowActive = pathname === '/now' || pathname === '/Now';
-  const isHistoryActive = pathname === '/data-historis-semua' || pathname === '/DATAHISTORISSEMUA' || pathname.startsWith('/data-historis');
+  const isHistoryActive = pathname === '/data-historis-semua' || pathname === '/DATAHISTORISSEMUA' || pathname?.startsWith('/data-historis');
   const isHomeActive = pathname === '/';
 
   return (
@@ -69,7 +68,7 @@ export default function Navbar() {
               </span>
             </div>
           </Link>
-
+          
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-1.5 bg-neutral-100/80 p-1 rounded-xl border border-neutral-200/80">
             <Link
@@ -105,6 +104,17 @@ export default function Navbar() {
               <History className="w-3.5 h-3.5 text-blue-500" />
               Data Historis Semua
             </Link>
+            <Link
+              href="/arsip-netflix"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                pathname === '/arsip-netflix'
+                  ? 'bg-white text-neutral-900 shadow-xs'
+                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/50'
+              }`}
+            >
+              <Film className="w-3.5 h-3.5 text-red-600" />
+              Arsip Netflix
+            </Link>
           </nav>
         </div>
 
@@ -119,7 +129,6 @@ export default function Navbar() {
             <Table className="w-3.5 h-3.5 text-emerald-600" />
             <span className="hidden sm:inline">Google Sheet</span>
           </a>
-
           <button
             onClick={handleTriggerScraper}
             disabled={isRefreshing}
@@ -129,7 +138,7 @@ export default function Navbar() {
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span className="hidden md:inline">{isRefreshing ? 'Scraping...' : 'Sync'}</span>
           </button>
-
+          
           {user ? (
             <div className="flex items-center gap-2 pl-1 border-l border-neutral-200">
               <span className="text-xs text-neutral-600 hidden lg:inline max-w-[130px] truncate">{user.email}</span>
@@ -170,7 +179,13 @@ export default function Navbar() {
           href="/data-historis-semua"
           className={`flex-1 text-center py-1.5 rounded-md font-semibold ${isHistoryActive ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-600'}`}
         >
-          Data Historis
+          Historis
+        </Link>
+        <Link
+          href="/arsip-netflix"
+          className={`flex-1 text-center py-1.5 rounded-md font-semibold ${pathname === '/arsip-netflix' ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-600'}`}
+        >
+          Netflix
         </Link>
       </div>
 

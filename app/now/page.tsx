@@ -11,7 +11,7 @@ import { motion } from 'motion/react';
 
 function NowContent() {
   const searchParams = useSearchParams();
-  const initialCat = searchParams.get('category') || 'all';
+  const initialCat = searchParams?.get('category') || 'all';
 
   const [lists, setLists] = useState<Record<string, MovieList>>({});
   const [historyData, setHistoryData] = useState<Record<string, any>>({});

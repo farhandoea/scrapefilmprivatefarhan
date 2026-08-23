@@ -11,7 +11,7 @@ import { motion } from 'motion/react';
 
 function HistoryContent() {
   const searchParams = useSearchParams();
-  const initialSource = searchParams.get('source') || 'All';
+  const initialSource = searchParams?.get('source') || 'All';
 
   const [historyData, setHistoryData] = useState<Record<string, any>>({});
   const [sourceFilter, setSourceFilter] = useState<string>(initialSource);
