@@ -211,7 +211,7 @@ function NowContent() {
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-5">
                         {movies.map((movieTitle, idx) => {
-                          const historyEntry = Object.values(categoryHistory).find(
+                          const historyEntry = Object.entries(categoryHistory).filter(([k]) => k !== '_updated').map(([k, v]) => v).find(
                             (m: any) => m.movie === movieTitle
                           ) as any;
                           const posterUrl = historyEntry?.posterUrl;

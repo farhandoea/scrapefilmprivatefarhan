@@ -54,6 +54,27 @@ export const SOURCE_INFO: Record<string, { label: string; shortLabel: string; ur
     badgeColor: 'bg-red-100 text-red-800 border-red-300',
     description: '10 Film Teratas di Netflix Indonesia hari ini'
   },
+  netflix_global_english: {
+    label: 'Netflix Global (English)',
+    shortLabel: 'Netflix Global EN',
+    url: 'https://www.netflix.com/tudum/top10/global',
+    badgeColor: 'bg-red-100 text-red-800 border-red-300',
+    description: 'Film Berbahasa Inggris Teratas di Netflix Global'
+  },
+  netflix_global_non_english: {
+    label: 'Netflix Global (Non-English)',
+    shortLabel: 'Netflix Global Non-EN',
+    url: 'https://www.netflix.com/tudum/top10/global',
+    badgeColor: 'bg-red-100 text-red-800 border-red-300',
+    description: 'Film Non-Inggris Teratas di Netflix Global'
+  },
+  netflix_us: {
+    label: 'Netflix US Top 10',
+    shortLabel: 'Netflix US',
+    url: 'https://www.netflix.com/tudum/top10/united-states',
+    badgeColor: 'bg-red-100 text-red-800 border-red-300',
+    description: 'Film Teratas di Netflix Amerika Serikat'
+  },
   klikfilm_trending: {
     label: 'KlikFilm Trending',
     shortLabel: 'KlikFilm',

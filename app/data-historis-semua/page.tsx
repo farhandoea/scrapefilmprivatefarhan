@@ -61,7 +61,9 @@ function HistoryContent() {
       LIST_ORDER.forEach((catId) => {
         const catHistory = historyData[catId] || {};
         const sourceInfo = SOURCE_INFO[catId];
-        Object.values(catHistory).forEach((item: any) => {
+        Object.entries(catHistory).forEach(([key, item]: [string, any]) => {
+          if (key === '_updated') return;
+        
           list.push({
             ...item,
             sourceName: sourceInfo?.label || catId,
@@ -73,7 +75,9 @@ function HistoryContent() {
     } else {
       const catHistory = historyData[sourceFilter] || {};
       const sourceInfo = SOURCE_INFO[sourceFilter];
-      Object.values(catHistory).forEach((item: any) => {
+      Object.entries(catHistory).forEach(([key, item]: [string, any]) => {
+          if (key === '_updated') return;
+        
         list.push({
           ...item,
           sourceName: sourceInfo?.label || sourceFilter,
