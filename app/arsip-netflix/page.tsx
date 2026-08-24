@@ -107,7 +107,7 @@ export default function ArsipNetflixPage() {
             </div>
             <h3 className="text-lg font-bold text-neutral-900 mb-2">Tidak Ditemukan</h3>
             <p className="text-neutral-500 max-w-md mx-auto">
-              Tidak ada data arsip yang cocok dengan pencarian "{searchTerm}"quot;{searchTerm}"{searchTerm}"quot; di tahun tersebut.
+              Tidak ada data arsip yang cocok dengan pencarian &quot;{searchTerm}&quot; di tahun tersebut.
             </p>
           </div>
         ) : (

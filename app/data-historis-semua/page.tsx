@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { LIST_ORDER, SOURCE_INFO, HistoryItem } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
-import { History, Search, Filter, ArrowUpDown, Calendar, Award, Film, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { History, Search, Filter, ArrowUpDown, Calendar, Award, Film, CheckCircle2, XCircle, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { motion } from 'motion/react';
 
 function HistoryContent() {
@@ -296,6 +296,19 @@ function HistoryContent() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 sm:gap-5">
               {paginatedMovies.map((item, idx) => {
                 const isActive = item.status === 'Aktif';
+                const lastSeenDate = item.lastSeenDate || '';
+                const ageDays = item.ageDays || 1;
+                
+                let firstSeenDateStr = '-';
+                if (lastSeenDate) {
+                  const d = new Date(lastSeenDate);
+                  d.setDate(d.getDate() - ageDays + 7);
+                  if (!isNaN(d.getTime())) {
+                     firstSeenDateStr = d.toISOString().split('T')[0];
+                  }
+                }
+                
+                const sourceInfo = item.category ? SOURCE_INFO[item.category] : null;
 
                 return (
                   <motion.div
@@ -333,11 +346,18 @@ function HistoryContent() {
                         {item.movie}
                       </h3>
 
-                      <div className="mt-3 pt-2.5 border-t border-neutral-100 flex flex-col gap-1.5 text-[11px]">
-                        <div className="flex items-center justify-between text-neutral-500 text-[10px]">
-                          <span>Masuk: {item.firstSeenDate || '-'}</span>
-                          <span>Update: {item.lastSeenDate || '-'}</span>
-                        </div>
+                      <div className="mt-3 pt-2.5 border-t border-neutral-100 flex flex-col gap-2 text-[11px]">
+                        {lastSeenDate && (
+                          <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 bg-neutral-50 p-1.5 rounded-md border border-neutral-100">
+                            <span className="font-medium text-neutral-700">Terlihat: {firstSeenDateStr} s/d {lastSeenDate}</span>
+                            {sourceInfo?.url && (
+                              <a href={(item.platform?.includes('netflix') || (item.category || '').toLowerCase().includes('netflix')) ? `${sourceInfo.url}?week=${lastSeenDate}` : sourceInfo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 mt-0.5 w-fit">
+                                <span>{(item.platform?.includes('netflix') || (item.category || '').toLowerCase().includes('netflix')) ? `Buka Arsip Tudum ${(item.platform?.includes('non_english') || (item.category || '').toLowerCase().includes('non-english')) ? '(Pilih Non-English)' : ''}` : `Kunjungi ${sourceInfo.shortLabel}`}</span>
+                                <ExternalLink className="w-2.5 h-2.5" />
+                              </a>
+                            )}
+                          </div>
+                        )}
 
                         <div className="flex items-center justify-between mt-1">
                           <span
@@ -351,7 +371,7 @@ function HistoryContent() {
                             {item.status}
                           </span>
                           <span className="font-mono font-bold text-neutral-900 text-xs">
-                            {item.ageDays || 1} Hari
+                            {ageDays} Hari
                           </span>
                         </div>
                       </div>

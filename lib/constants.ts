@@ -60,14 +60,14 @@ export const SOURCE_INFO: Record<string, { label: string; shortLabel: string; ur
   netflix_global_english: {
     label: 'Netflix Global (English)',
     shortLabel: 'Netflix Global EN',
-    url: 'https://www.netflix.com/tudum/top10/global',
+    url: 'https://www.netflix.com/tudum/top10',
     badgeColor: 'bg-red-100 text-red-800 border-red-300',
     description: 'Film Berbahasa Inggris Teratas di Netflix Global'
   },
   netflix_global_non_english: {
     label: 'Netflix Global (Non-English)',
     shortLabel: 'Netflix Global Non-EN',
-    url: 'https://www.netflix.com/tudum/top10/global',
+    url: 'https://www.netflix.com/tudum/top10',
     badgeColor: 'bg-red-100 text-red-800 border-red-300',
     description: 'Film Non-Inggris Teratas di Netflix Global'
   },
