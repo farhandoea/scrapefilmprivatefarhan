@@ -21,7 +21,7 @@ export default function Home() {
             </div>
             <h1 className="text-4xl sm:text-5xl font-black text-neutral-900 tracking-tight leading-tight mb-4">
               Radar Tren Film <br className="hidden sm:inline" />
-              <span className="text-neutral-500 font-normal">Lintas 10 Platform Populer</span>
+              <span className="text-neutral-500 font-normal">Lintas Platform Populer</span>
             </h1>
             <p className="text-base sm:text-lg text-neutral-600 leading-relaxed mb-6">
               Sistem otomatisasi untuk memantau, mendokumentasikan, dan menganalisis dinamika popularitas film dari berbagai platform streaming, bioskop, dan komunitas subtitle secara <em>real-time</em>.
@@ -46,7 +46,7 @@ export default function Home() {
                   Now
                 </h2>
                 <p className="text-neutral-600 text-sm leading-relaxed mb-6">
-                  Menampilkan jajaran film peringkat 1-10 yang sedang aktif dan trending hari ini di masing-masing dari 10 platform.
+                  Menampilkan jajaran film peringkat 1-10 yang sedang aktif dan trending hari ini di masing-masing platform.
                 </p>
               </div>
 
@@ -90,13 +90,13 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 10 Platforms Category Grid */}
+        {/* Platforms Category Grid */}
         <section className="mb-12">
           <div className="flex items-center justify-between gap-4 mb-6">
             <div>
               <h3 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight flex items-center gap-2">
                 <Layers className="w-5 h-5 text-neutral-700" />
-                10 Kategori Platform Terdaftar
+                Daftar Platform Terdaftar
               </h3>
               <p className="text-xs sm:text-sm text-neutral-500 mt-1">
                 Pilih langsung platform untuk melihat daftar film aktif (/Now) atau riwayat historisnya.
@@ -159,7 +159,7 @@ export default function Home() {
               </div>
               <h4 className="font-bold text-neutral-900 mb-1.5">Otomatisasi Scraper</h4>
               <p className="text-xs sm:text-sm leading-relaxed">
-                GitHub Actions menjalankan bot pemindai setiap 2 jam untuk mengekstrak data Top 10 film langsung dari situs resmi KlikFilm, Netflix, HBO Max, Apple TV+, IMDb, XXI, SubDL, dan SubSource.
+                GitHub Actions menjalankan bot pemindai setiap 2 jam untuk mengekstrak data Top 10 film langsung dari situs resmi KlikFilm, HBO Max, Apple TV+, IMDb, XXI, SubDL, dan SubSource.
               </p>
             </div>
 

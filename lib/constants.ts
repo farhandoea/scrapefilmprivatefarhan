@@ -23,10 +23,6 @@ export interface HistoryItem {
 export const LIST_ORDER = [
   'top_ten',
   'in_theaters',
-  'netflix_indonesia',
-  'netflix_global_english',
-  'netflix_global_non_english',
-  'netflix_us',
   'klikfilm_trending',
   'hbo_max_top10',
   'apple_tv_top10',
@@ -49,34 +45,6 @@ export const SOURCE_INFO: Record<string, { label: string; shortLabel: string; ur
     url: 'https://m.21cineplex.com/id/movies?tabs=now-playing',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     description: 'Film yang sedang tayang di bioskop Cinema 21 / XXI'
-  },
-  netflix_indonesia: {
-    label: 'Netflix Indonesia Top 10',
-    shortLabel: 'Netflix',
-    url: 'https://www.netflix.com/tudum/top10/indonesia',
-    badgeColor: 'bg-red-100 text-red-800 border-red-300',
-    description: '10 Film Teratas di Netflix Indonesia hari ini'
-  },
-  netflix_global_english: {
-    label: 'Netflix Global (English)',
-    shortLabel: 'Netflix Global EN',
-    url: 'https://www.netflix.com/tudum/top10',
-    badgeColor: 'bg-red-100 text-red-800 border-red-300',
-    description: 'Film Berbahasa Inggris Teratas di Netflix Global'
-  },
-  netflix_global_non_english: {
-    label: 'Netflix Global (Non-English)',
-    shortLabel: 'Netflix Global Non-EN',
-    url: 'https://www.netflix.com/tudum/top10',
-    badgeColor: 'bg-red-100 text-red-800 border-red-300',
-    description: 'Film Non-Inggris Teratas di Netflix Global'
-  },
-  netflix_us: {
-    label: 'Netflix US Top 10',
-    shortLabel: 'Netflix US',
-    url: 'https://www.netflix.com/tudum/top10/united-states',
-    badgeColor: 'bg-red-100 text-red-800 border-red-300',
-    description: 'Film Teratas di Netflix Amerika Serikat'
   },
   klikfilm_trending: {
     label: 'KlikFilm Trending',
@@ -241,25 +209,6 @@ export const DEFAULT_LISTS: Record<string, MovieList> = {
       'Re:ZERO -Starting Life in Another World- (2016)',
       'The Invite (2026)',
       'Smoking Behind the Supermarket with You (2026)'
-    ],
-    updatedAt: 1771706900000
-  },
-  netflix_indonesia: {
-    id: 'netflix_indonesia',
-    title: 'Netflix Top 10 Indonesia',
-    source: 'Netflix Indonesia',
-    sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia',
-    movies: [
-      'Wait for Me To Be Successful Later (2026)',
-      'The Last House (2026)',
-      'Na Willa (2026)',
-      'Extinction (2015)',
-      'The Suicide Squad (2021)',
-      'Danur: The Last Chapter (2026)',
-      'Last Chance To Save (2026)',
-      'Suzzanna: Witchcraft (2026)',
-      'Suicide Squad (2016)',
-      'Edge of Tomorrow (2014)'
     ],
     updatedAt: 1771706900000
   },

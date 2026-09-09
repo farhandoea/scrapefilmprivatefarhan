@@ -7,6 +7,10 @@ on:
   workflow_dispatch:
     # Allow manual triggers from the website or GitHub Actions tab
 
+# Memberikan izin untuk menulis commit kembali ke repositori (agar workflow tidak pernah dinonaktifkan oleh GitHub)
+permissions:
+  contents: write
+
 jobs:
   scrape-and-sync:
     runs-on: ubuntu-latest
@@ -29,3 +33,13 @@ jobs:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: node scripts/scrape.js
 
+      # Keep-Alive Step: Otomatis memperbarui timestamp dan commit mingguan agar GitHub tidak pernah menonaktifkan cron workflow
+      - name: Auto Keep-Alive (Prevent Inactivity Disable)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p .github/logs
+          echo "Last run: $(date -u)" > .github/logs/heartbeat.log
+          git add .github/logs/heartbeat.log
+          # Commit & Push hanya jika ada perubahan
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore(bot): automated heartbeat keep-alive [skip ci]" && git push)

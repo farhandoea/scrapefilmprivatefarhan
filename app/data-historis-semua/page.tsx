@@ -351,8 +351,8 @@ function HistoryContent() {
                           <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 bg-neutral-50 p-1.5 rounded-md border border-neutral-100">
                             <span className="font-medium text-neutral-700">Terlihat: {firstSeenDateStr} s/d {lastSeenDate}</span>
                             {sourceInfo?.url && (
-                              <a href={(item.platform?.includes('netflix') || (item.category || '').toLowerCase().includes('netflix')) ? `${sourceInfo.url}?week=${lastSeenDate}` : sourceInfo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 mt-0.5 w-fit">
-                                <span>{(item.platform?.includes('netflix') || (item.category || '').toLowerCase().includes('netflix')) ? `Buka Arsip Tudum ${(item.platform?.includes('non_english') || (item.category || '').toLowerCase().includes('non-english')) ? '(Pilih Non-English)' : ''}` : `Kunjungi ${sourceInfo.shortLabel}`}</span>
+                              <a href={sourceInfo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 mt-0.5 w-fit">
+                                <span>Kunjungi {sourceInfo.shortLabel}</span>
                                 <ExternalLink className="w-2.5 h-2.5" />
                               </a>
                             )}

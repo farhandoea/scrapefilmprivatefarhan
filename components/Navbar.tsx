@@ -64,7 +64,7 @@ export default function Navbar() {
                 Radar Film
               </span>
               <span className="text-[10px] text-neutral-500 font-medium tracking-wide">
-                Trend Tracker 10 Platform
+                Trend Tracker Platform
               </span>
             </div>
           </Link>
@@ -103,17 +103,6 @@ export default function Navbar() {
             >
               <History className="w-3.5 h-3.5 text-blue-500" />
               Data Historis Semua
-            </Link>
-            <Link
-              href="/arsip-netflix"
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                pathname === '/arsip-netflix'
-                  ? 'bg-white text-neutral-900 shadow-xs'
-                  : 'text-neutral-600 hover:text-neutral-900 hover:bg-white/50'
-              }`}
-            >
-              <Film className="w-3.5 h-3.5 text-red-600" />
-              Arsip Netflix
             </Link>
           </nav>
         </div>
@@ -180,12 +169,6 @@ export default function Navbar() {
           className={`flex-1 text-center py-1.5 rounded-md font-semibold ${isHistoryActive ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-600'}`}
         >
           Historis
-        </Link>
-        <Link
-          href="/arsip-netflix"
-          className={`flex-1 text-center py-1.5 rounded-md font-semibold ${pathname === '/arsip-netflix' ? 'bg-white text-neutral-900 shadow-xs' : 'text-neutral-600'}`}
-        >
-          Netflix
         </Link>
       </div>
 

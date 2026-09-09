@@ -222,7 +222,7 @@ function NowContent() {
                           let firstSeenDateStr = '-';
                           if (lastSeenDate) {
                             const d = new Date(lastSeenDate);
-                            // Estimate first seen based on ageDays (usually multiple of 7 for netflix)
+                            // Estimate first seen based on ageDays (usually multiple of 7)
                             d.setDate(d.getDate() - ageDays + 7);
                             if (!isNaN(d.getTime())) {
                                firstSeenDateStr = d.toISOString().split('T')[0];
@@ -266,8 +266,8 @@ function NowContent() {
                                     <div className="flex flex-col gap-0.5 text-[10px] text-neutral-500 bg-neutral-50 p-1.5 rounded-md border border-neutral-100">
                                       <span className="font-medium text-neutral-700">Terlihat: {firstSeenDateStr} s/d {lastSeenDate}</span>
                                       {sourceInfo?.url && (
-                                        <a href={listId.includes('netflix') ? `${sourceInfo.url}?week=${lastSeenDate}` : sourceInfo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 mt-0.5 w-fit">
-                                          <span>{listId.includes('netflix') ? `Buka Arsip Tudum ${listId.includes('non_english') ? '(Pilih Non-English)' : ''}` : `Kunjungi ${sourceInfo.shortLabel}`}</span>
+                                        <a href={sourceInfo.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1 mt-0.5 w-fit">
+                                          <span>Kunjungi {sourceInfo.shortLabel}</span>
                                           <ExternalLink className="w-2.5 h-2.5" />
                                         </a>
                                       )}

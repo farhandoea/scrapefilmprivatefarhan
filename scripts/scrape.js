@@ -296,76 +296,6 @@ async function scrapeSubDLMostDownloaded() {
   }
 }
 
-async function scrapeNetflixIndonesia() {
-  try {
-    console.log("🔍 Scraping Netflix Indonesia Top 10...");
-    const url = 'https://www.netflix.com/tudum/top10/indonesia';
-    const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
-    const $ = cheerio.load(response.data);
-    
-    // Extract years from the GraphQL JSON payload in the HTML
-    const yearMap = {};
-    const regex = /"__typename":"Top10PulseVideo","title":"([^"]+)",(?:.*?)"releaseYear":(\d+)/g;
-    let m;
-    while ((m = regex.exec(response.data)) !== null) {
-      yearMap[m[1]] = m[2];
-    }
-    
-    const movies = [];
-    $('table tbody tr').each((i, tr) => {
-      const buttonText = $(tr).find('td').first().find('button').text().trim();
-      let title = buttonText;
-      if (!title) {
-        const firstTdText = $(tr).find('td').first().text().trim();
-        title = firstTdText.replace(/^\d+/, '').trim();
-      }
-      if (title) {
-        const year = yearMap[title];
-        const fullTitle = year ? `${title} (${year})` : title;
-        if (!movies.includes(fullTitle)) {
-          movies.push(fullTitle);
-        }
-      }
-    });
-
-    if (movies.length > 0) {
-      const result = movies.slice(0, 10);
-      console.log(`Found ${result.length} movies for Netflix Indonesia Top 10:`, result);
-      return { movies: result, source: 'Netflix Indonesia', sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia' };
-    }
-
-    const fallbackNetflix = [
-      'Wait for Me To Be Successful Later (2026)',
-      'The Last House (2026)',
-      'Na Willa (2026)',
-      'Extinction (2015)',
-      'The Suicide Squad (2021)',
-      'Danur: The Last Chapter (2026)',
-      'Last Chance To Save (2026)',
-      'Suzzanna: Witchcraft (2026)',
-      'Suicide Squad (2016)',
-      'Edge of Tomorrow (2014)'
-    ];
-    console.log("⚠️ Netflix Indonesia scrape returned empty. Using fallback list.");
-    return { movies: fallbackNetflix, source: 'Netflix Indonesia', sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia' };
-  } catch (error) {
-    console.error("⚠️ Error scraping Netflix Indonesia:", error.message);
-    const fallbackNetflix = [
-      'Wait for Me To Be Successful Later (2026)',
-      'The Last House (2026)',
-      'Na Willa (2026)',
-      'Extinction (2015)',
-      'The Suicide Squad (2021)',
-      'Danur: The Last Chapter (2026)',
-      'Last Chance To Save (2026)',
-      'Suzzanna: Witchcraft (2026)',
-      'Suicide Squad (2016)',
-      'Edge of Tomorrow (2014)'
-    ];
-    return { movies: fallbackNetflix, source: 'Netflix Indonesia', sourceUrl: 'https://www.netflix.com/tudum/top10/indonesia' };
-  }
-}
-
 const APPLE_HBO_YEAR_MAP = {
   // Apple TV+
   'F1 The Movie': '2025',
@@ -1031,7 +961,6 @@ async function run() {
   const subsource = await scrapeSubSourcePopular();
   const subdlPopular = await scrapeSubDLPopularMovies();
   const subdlMostDownloaded = await scrapeSubDLMostDownloaded();
-  const netflixIndonesia = await scrapeNetflixIndonesia();
   const klikfilmTrending = await scrapeKlikFilmTrending();
   const appleTvTop10 = await scrapeAppleTVTop10();
   const hboMaxTop10 = await scrapeHBOMaxTop10();
@@ -1080,15 +1009,6 @@ async function run() {
     const stats = await trackMovieHistory(db, 'subdl_most_downloaded', 'SubDL Most Downloaded Subtitle', subdlMostDownloaded.movies, 'SubDL Most Downloaded');
     allStats = allStats.concat(stats);
   }
-  
-  if (netflixIndonesia.movies.length > 0) {
-    const ref = db.collection('movie_lists').doc('netflix_indonesia');
-    batch.set(ref, { id: 'netflix_indonesia', title: 'Netflix Top 10 Indonesia', source: netflixIndonesia.source, sourceUrl: netflixIndonesia.sourceUrl, movies: netflixIndonesia.movies, updatedAt: now });
-    hasWrites = true;
-    const stats = await trackMovieHistory(db, 'netflix_indonesia', 'Netflix Top 10 Indonesia', netflixIndonesia.movies, 'Netflix Indonesia');
-    allStats = allStats.concat(stats);
-  }
-
   
   if (klikfilmTrending.movies.length > 0) {
     const ref = db.collection('movie_lists').doc('klikfilm_trending');
