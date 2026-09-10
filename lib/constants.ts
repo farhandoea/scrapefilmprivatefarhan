@@ -5,6 +5,8 @@ export interface MovieList {
   sourceUrl?: string;
   movies: string[];
   updatedAt: number;
+  isError?: boolean;
+  errorMessage?: string;
 }
 
 export interface HistoryItem {
@@ -42,7 +44,7 @@ export const SOURCE_INFO: Record<string, { label: string; shortLabel: string; ur
   in_theaters: {
     label: 'Cinema 21 (Now Playing)',
     shortLabel: 'Cinema XXI',
-    url: 'https://m.21cineplex.com/id/movies?tabs=now-playing',
+    url: 'https://21cineplex.com/nowplaying',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
     description: 'Film yang sedang tayang di bioskop Cinema 21 / XXI'
   },
@@ -115,7 +117,7 @@ export const DEFAULT_LISTS: Record<string, MovieList> = {
     id: 'in_theaters',
     title: 'Cinema XXI (21 Cineplex)',
     source: 'Cinema 21 (Now Playing)',
-    sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing',
+    sourceUrl: 'https://21cineplex.com/nowplaying',
     movies: [
       'Spider-Man: Brand New Day (2026)',
       'Sajen Satu Suro (2026)',

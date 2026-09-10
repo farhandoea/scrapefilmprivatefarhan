@@ -1,12 +1,39 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { LIST_ORDER, SOURCE_INFO } from '@/lib/constants';
-import { Flame, History, Table, Film, ArrowRight, ShieldCheck, Clock, Layers, Sparkles } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { LIST_ORDER, SOURCE_INFO, MovieList } from '@/lib/constants';
+import { Flame, History, Table, Film, ArrowRight, ShieldCheck, Clock, Layers, Sparkles, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function Home() {
+  const [lists, setLists] = useState<Record<string, MovieList>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const unsubscribeLists = onSnapshot(
+      collection(db, 'movie_lists'),
+      (snapshot) => {
+        if (!isMounted) return;
+        const fetched: Record<string, MovieList> = {};
+        snapshot.docs.forEach((doc) => {
+          fetched[doc.id] = doc.data() as MovieList;
+        });
+        setLists(fetched);
+      },
+      (error) => {
+        console.error('Error fetching lists on home:', error);
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      unsubscribeLists();
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       <Navbar />
@@ -107,20 +134,34 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {LIST_ORDER.map((id) => {
               const info = SOURCE_INFO[id];
+              const listData = lists[id];
+              const isError = Boolean(listData?.isError);
               return (
                 <div
                   key={id}
-                  className="bg-white rounded-2xl p-5 border border-neutral-200/90 shadow-2xs hover:border-neutral-400 hover:shadow-xs transition-all flex flex-col justify-between gap-4"
+                  className={`bg-white rounded-2xl p-5 border shadow-2xs hover:shadow-xs transition-all flex flex-col justify-between gap-4 ${
+                    isError ? 'border-rose-300 ring-1 ring-rose-200' : 'border-neutral-200/90 hover:border-neutral-400'
+                  }`}
                 >
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${info.badgeColor}`}>
-                        {info.shortLabel}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${info.badgeColor}`}>
+                          {info.shortLabel}
+                        </span>
+                        {isError && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            Gagal Update
+                          </span>
+                        )}
+                      </div>
                       <Film className="w-4 h-4 text-neutral-400" />
                     </div>
                     <h4 className="font-bold text-neutral-900 text-sm line-clamp-1">{info.label}</h4>
-                    <p className="text-xs text-neutral-500 mt-1 line-clamp-2">{info.description}</p>
+                    <p className="text-xs text-neutral-500 mt-1 line-clamp-2">
+                      {isError ? (listData?.errorMessage || 'Gagal update terbaru dari sumber') : info.description}
+                    </p>
                   </div>
 
                   <div className="pt-3 border-t border-neutral-100 flex flex-col gap-1.5 text-xs">

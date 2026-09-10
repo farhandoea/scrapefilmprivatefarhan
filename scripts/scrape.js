@@ -136,20 +136,30 @@ async function scrapeIMDBTop10() {
 async function scrape21CineplexNowPlaying() {
   try {
     console.log("🔍 Scraping 21 Cineplex Now Playing (Cinema XXI)...");
-    const url = 'https://21cineplex.com/gui.list_movie';
-    const response = await axios.get(url, { headers: HEADERS, timeout: 8000 });
+    const url = 'https://21cineplex.com/nowplaying';
+    const response = await axios.get(url, { 
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Cache-Control': 'no-cache'
+      }, 
+      timeout: 10000 
+    });
     const $ = cheerio.load(response.data);
     
     const movies = [];
-    $('.movie').each((i, el) => {
-      let title = $(el).find('.movie-desc').text().trim().replace(/\s+/g, ' ');
-      if (title && title.length > 2) {
-        // Append current year
-        const currentYear = new Date().getFullYear();
-        title = `${title} (${currentYear})`;
-        if (!movies.includes(title)) {
-          movies.push(title);
-        }
+    $('.movie, .movie-desc, div.poster-title').each((i, el) => {
+      let title = $(el).find('.movie-desc').text().trim() || $(el).text().trim();
+      title = title.replace(/\s+/g, ' ');
+      if (
+        title && 
+        title.length > 2 && 
+        !title.toLowerCase().includes('advance ticket') &&
+        !title.toLowerCase().includes('upcoming') &&
+        !movies.includes(title)
+      ) {
+        movies.push(title);
       }
     });
 
@@ -159,7 +169,7 @@ async function scrape21CineplexNowPlaying() {
       return { 
         movies: result, 
         source: 'Cinema 21 (Now Playing)', 
-        sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' 
+        sourceUrl: 'https://21cineplex.com/nowplaying' 
       };
     }
     
@@ -177,7 +187,7 @@ async function scrape21CineplexNowPlaying() {
       `Cek Khodam (${new Date().getFullYear()})`,
       `Petaka Gunung Welirang (${new Date().getFullYear()})`
     ];
-    return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' };
+    return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://21cineplex.com/nowplaying' };
   } catch (error) {
     console.log("⚠️ 21 Cineplex direct scrape failed:", error.message);
     const fallback21 = [
@@ -194,7 +204,7 @@ async function scrape21CineplexNowPlaying() {
       `Cek Khodam (${new Date().getFullYear()})`,
       `Petaka Gunung Welirang (${new Date().getFullYear()})`
     ];
-    return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://m.21cineplex.com/id/movies?tabs=now-playing' };
+    return { movies: fallback21, source: 'Cinema 21 (Now Playing)', sourceUrl: 'https://21cineplex.com/nowplaying' };
   }
 }
 

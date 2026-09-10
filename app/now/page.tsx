@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { LIST_ORDER, SOURCE_INFO, DEFAULT_LISTS, MovieList } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
-import { Flame, ExternalLink, Calendar, Film, Layers, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Flame, ExternalLink, Calendar, Film, Layers, CheckCircle2, ChevronRight, AlertTriangle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 function NowContent() {
@@ -87,13 +87,13 @@ function NowContent() {
               Now — Tren Film Terkini
             </h1>
             <p className="text-neutral-600 text-sm sm:text-base mt-2 max-w-2xl">
-              Memantau daftar film dan serial yang sedang menduduki peringkat teratas di 10 platform populer saat ini.
+              Memantau daftar film dan serial yang sedang menduduki peringkat teratas di {LIST_ORDER.length} platform populer saat ini.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-neutral-500 font-medium">Total Platform:</span>
-            <span className="text-xs font-bold bg-neutral-900 text-white px-2.5 py-1 rounded-lg">10 Sumber</span>
+            <span className="text-xs font-bold bg-neutral-900 text-white px-2.5 py-1 rounded-lg">{LIST_ORDER.length} Sumber</span>
           </div>
         </div>
 
@@ -113,7 +113,7 @@ function NowContent() {
                   : 'bg-white text-neutral-700 hover:bg-neutral-100 border border-neutral-200'
               }`}
             >
-              Semua Kategori (10)
+              Semua Kategori ({LIST_ORDER.length})
             </button>
             {LIST_ORDER.map((id) => {
               const info = SOURCE_INFO[id];
@@ -152,6 +152,9 @@ function NowContent() {
               const updatedAt = listData?.updatedAt;
               const categoryHistory = historyData[listId] || {};
 
+              const isError = Boolean(listData?.isError);
+              const errorMessage = listData?.errorMessage || 'Gagal terhubung ke situs sumber.';
+
               return (
                 <motion.section
                   key={listId}
@@ -160,6 +163,21 @@ function NowContent() {
                   transition={{ duration: 0.25 }}
                   className="bg-white rounded-2xl border border-neutral-200/90 overflow-hidden shadow-xs"
                 >
+                  {/* Error Notification Alert Banner */}
+                  {isError && (
+                    <div className="bg-rose-50 border-b border-rose-200 px-4 py-2.5 sm:px-6 flex items-center justify-between gap-3 text-rose-800 text-xs sm:text-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>
+                          <strong className="font-semibold">Gagal Update Otomatis:</strong> {errorMessage} (Menampilkan data cache/terakhir)
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-rose-600 bg-rose-100 px-2 py-0.5 rounded-md border border-rose-200 shrink-0">
+                        Memerlukan Cek Sumber
+                      </span>
+                    </div>
+                  )}
+
                   {/* Category Header Bar */}
                   <div className="bg-neutral-50 p-4 sm:p-6 border-b border-neutral-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start sm:items-center gap-3">
@@ -172,6 +190,17 @@ function NowContent() {
                           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${sourceInfo?.badgeColor || 'bg-neutral-100 text-neutral-800'}`}>
                             {sourceInfo?.shortLabel || 'Live'}
                           </span>
+                          {isError ? (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-300 inline-flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                              Gagal Update
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 inline-flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Terkini
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-neutral-500 mt-0.5">
                           {sourceInfo?.description || 'Daftar terkini hasil pemindaian sistem'}

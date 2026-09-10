@@ -160,7 +160,7 @@ function HistoryContent() {
             Data Historis Semua
           </h1>
           <p className="text-neutral-600 text-sm sm:text-base mt-2 max-w-3xl">
-            Arsip lengkap riwayat seluruh film yang pernah masuk dan bertahan di tangga popularitas 10 platform, lengkap dengan rekor umur hari dan tanggal aktifnya.
+            Arsip lengkap riwayat seluruh film yang pernah masuk dan bertahan di tangga popularitas {LIST_ORDER.length} platform, lengkap dengan rekor umur hari dan tanggal aktifnya.
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "Movie Scraper Reference",
-  "description": "A personal movie reference app that displays scraped data from IMDb, Cinema XXI, SubSource, SubDL, and Netflix Indonesia, synced via GitHub Actions.",
+  "description": "A personal movie reference app that displays scraped data from IMDb, Cinema XXI, KlikFilm, HBO Max, Apple TV+, SubSource, and SubDL, synced via GitHub Actions.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
