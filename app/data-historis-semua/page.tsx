@@ -298,15 +298,7 @@ function HistoryContent() {
                 const isActive = item.status === 'Aktif';
                 const lastSeenDate = item.lastSeenDate || '';
                 const ageDays = item.ageDays || 1;
-                
-                let firstSeenDateStr = '-';
-                if (lastSeenDate) {
-                  const d = new Date(lastSeenDate);
-                  d.setDate(d.getDate() - ageDays + 7);
-                  if (!isNaN(d.getTime())) {
-                     firstSeenDateStr = d.toISOString().split('T')[0];
-                  }
-                }
+                const firstSeenDateStr = item.firstSeenDate || lastSeenDate || '-';
                 
                 const sourceInfo = item.category ? SOURCE_INFO[item.category] : null;
 
