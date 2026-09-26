@@ -720,17 +720,52 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
     return null;
   };
 
+  // Helper function to normalize titles for fuzzy matching across format variations (e.g. with/without year or IMAX tags)
+  const normalizeTitle = (t) => {
+    if (!t) return '';
+    return t
+      .replace(/\s*\(\d{4}\)\s*/g, '')
+      .replace(/\s*\(\s*IMAX\s*[^)]*\)\s*/ig, '')
+      .replace(/\s*-\s*Fans Screening\s*/ig, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
+      .trim();
+  };
+
   // 1. Process all currently scraped movies
   for (const movie of movies) {
     const key = Buffer.from(movie).toString('base64');
     currentKeys.add(key);
 
+    let prev = historyData[key];
+    let matchedPrevKey = key;
+
+    // Fuzzy/normalized lookup: match title if previously recorded under slightly different formatting
+    if (!prev) {
+      const cleanTarget = normalizeTitle(movie);
+      for (const [k, v] of Object.entries(historyData)) {
+        if (k === '_updated' || !v || !v.movie) continue;
+        const cleanV = normalizeTitle(v.movie);
+        if (cleanV === cleanTarget) {
+          prev = v;
+          matchedPrevKey = k;
+          break;
+        }
+      }
+    }
+
+    if (matchedPrevKey && matchedPrevKey !== key) {
+      // Mark old key as active so it does NOT get marked as 'Keluar dari Daftar' in step 2
+      currentKeys.add(matchedPrevKey);
+      // Remove old conflicting key to avoid duplicate/conflicting history entries
+      delete historyData[matchedPrevKey];
+    }
+
     let ageDays = 1;
     let firstSeenStr = todayStr;
     let posterUrl = null;
     
-    if (historyData[key]) {
-      const prev = historyData[key];
+    if (prev) {
       firstSeenStr = prev.firstSeenDate || todayStr;
       posterUrl = prev.posterUrl || null;
       
@@ -739,6 +774,14 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
       // Jika ini adalah scraping di hari yang berbeda, tambah 1 hari
       if (prev.lastSeenDate && prev.lastSeenDate !== todayStr) {
         ageDays += 1;
+      }
+
+      // Safeguard: ensure ageDays is at least the elapsed days if continuously active since first seen
+      if (firstSeenStr && firstSeenStr < todayStr) {
+        const elapsed = Math.max(1, Math.round((new Date(todayStr + 'T00:00:00Z').getTime() - new Date(firstSeenStr + 'T00:00:00Z').getTime()) / 86400000) + 1);
+        if (elapsed > ageDays && (!prev.status || prev.status === 'Aktif')) {
+          ageDays = elapsed;
+        }
       }
     } 
 
@@ -773,6 +816,7 @@ async function trackMovieHistory(db, listId, listName, movies, sourceName) {
   for (const key of Object.keys(historyData)) {
     if (!currentKeys.has(key)) {
       const prev = historyData[key];
+      if (!prev || !prev.movie) continue;
       
       // Fetch missing poster for historical data that is no longer active
       if (!prev.posterUrl) {
@@ -867,8 +911,21 @@ async function syncToGoogleSheets(sheetId, allStats) {
         // Ensure header row exists
         try {
           await sheet.loadHeaderRow();
+          const hasValidHeaders = headers.every(h => sheet.headerValues && sheet.headerValues.includes(h));
+          if (!hasValidHeaders) {
+            await sheet.setHeaderRow(headers);
+          }
         } catch(e) {
-          await sheet.setHeaderRow(headers);
+          try {
+            await sheet.loadCells('A1:G1');
+            for (let i = 0; i < headers.length; i++) {
+              sheet.getCell(0, i).value = headers[i];
+            }
+            await sheet.saveUpdatedCells();
+            await sheet.loadHeaderRow();
+          } catch (_) {
+            await sheet.setHeaderRow(headers);
+          }
         }
       }
       
@@ -889,10 +946,6 @@ async function syncToGoogleSheets(sheetId, allStats) {
       // Preserve previously inactive movies from the sheet
       for (const row of existingData) {
         if (row['Nama Film']) {
-          // MIGRATION: Append current year to old Cinema XXI entries
-          if (sourceName === 'Cinema XXI' && !row['Nama Film'].endsWith(')')) {
-            row['Nama Film'] = `${row['Nama Film']} (${new Date().getFullYear()})`;
-          }
           if (!activeNames.has(row['Nama Film'])) {
             inactiveMap.set(row['Nama Film'], row);
           }
@@ -935,37 +988,6 @@ async function syncToGoogleSheets(sheetId, allStats) {
 }
 
 async function run() {
-  // --- MIGRATION BLOCK: Append year to old Cinema XXI history ---
-  try {
-    const historyRef = db.collection('movie_history').doc('in_theaters');
-    const docSnap = await historyRef.get();
-    if (docSnap.exists) {
-      const data = docSnap.data();
-      let migrated = false;
-      const suffix = ` (${new Date().getFullYear()})`;
-      
-      for (const key of Object.keys(data)) {
-        const entry = data[key];
-        if (entry.movie && !entry.movie.endsWith(')')) {
-          const newName = `${entry.movie}${suffix}`;
-          const newKey = Buffer.from(newName).toString('base64');
-          entry.movie = newName;
-          data[newKey] = entry;
-          delete data[key];
-          migrated = true;
-        }
-      }
-      
-      if (migrated) {
-        await historyRef.set(data);
-        console.log("✅ Migrated old Cinema XXI history to include year suffix!");
-      }
-    }
-  } catch (e) {
-    console.error("Migration error:", e);
-  }
-  // --- END MIGRATION BLOCK ---
-
   const top10 = await scrapeIMDBTop10();
   const cineplex21 = await scrape21CineplexNowPlaying();
   const subsource = await scrapeSubSourcePopular();
