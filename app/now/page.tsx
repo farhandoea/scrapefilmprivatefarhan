@@ -240,23 +240,22 @@ function NowContent() {
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5 sm:gap-5">
                         {movies.map((movieTitle, idx) => {
-                          const historyEntry = Object.entries(categoryHistory).filter(([k]) => k !== '_updated').map(([k, v]) => v).find(
-                            (m: any) => m.movie === movieTitle
-                          ) as any;
+                          const historyEntry = Object.entries(categoryHistory)
+                            .filter(([k]) => k !== '_updated')
+                            .map(([k, v]) => v as any)
+                            .find((m: any) => {
+                              if (!m?.movie) return false;
+                              if (m.movie === movieTitle) return true;
+                              const cleanM = m.movie.replace(/\s*\(\d{4}\)$/, '').trim().toLowerCase();
+                              const cleanT = movieTitle.replace(/\s*\(\d{4}\)$/, '').trim().toLowerCase();
+                              return cleanM === cleanT;
+                            });
                           const posterUrl = historyEntry?.posterUrl;
                           const status = historyEntry?.status || 'Aktif';
                           const ageDays = historyEntry?.ageDays || 1;
                           const lastSeenDate = historyEntry?.lastSeenDate || '';
                           
-                          let firstSeenDateStr = '-';
-                          if (lastSeenDate) {
-                            const d = new Date(lastSeenDate);
-                            // Estimate first seen based on ageDays (usually multiple of 7)
-                            d.setDate(d.getDate() - ageDays + 7);
-                            if (!isNaN(d.getTime())) {
-                               firstSeenDateStr = d.toISOString().split('T')[0];
-                            }
-                          }
+                          const firstSeenDateStr = historyEntry?.firstSeenDate || lastSeenDate || '-';
 
                           return (
                             <div
